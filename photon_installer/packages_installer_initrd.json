@@ -47,7 +47,7 @@
         "ostree-grub2",
         "ostree-libs",
         "pcre",
-        "photon-os-installer",
+        "niceos-installer",
         "popt",
         "python3",
         "python3-cracklib",
