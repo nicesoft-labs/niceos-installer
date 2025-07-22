@@ -39,7 +39,7 @@ class IsoConfig(object):
         # Adding the . and -
         self.hostname_accepted_chars.extend([ord('.'), ord('-')])
         self.random_id = '%12x' % secrets.randbelow(16**12)
-        self.random_hostname = "photon-" + self.random_id.strip()
+        self.random_hostname = "niceos-" + self.random_id.strip()
         self.logger = Logger.get_logger()
         self.root_dir = root_dir
 
@@ -242,7 +242,7 @@ class IsoConfig(object):
             IsoConfig.validate_ostree_refs_input, # validation function of the input
             None, # post processing of the input field
             'Please provide the Refspec in OSTree repo', 'OSTree Repo Refspec:', 2, install_config,
-            "photon/3.0/x86_64/minimal")
+            "niceos/3.0/x86_64/minimal")
         confirm_window = ConfirmWindow(11, 60, maxy, maxx,
                                       (maxy - 11) // 2 + 7,
                                       'Start installation? All data on the selected disk will be lost.\n\n'
