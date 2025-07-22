@@ -28,7 +28,7 @@ Example config:
 
     "network":{
         "version": "2",
-        "hostname" : "photon-machine",
+        "hostname" : "niceos-machine",
         "ethernets": {
             "id0":{
                 "match":{
@@ -110,7 +110,7 @@ class NetworkManager:
 
     SYSTEMD_NETWORKD_PREFIX = "50-"
 
-    # hard coded values in Photon
+    # hard coded values in NiceOS
     SYSTEMD_NETWORK_UID = 76
     SYSTEMD_NETWORK_GID = 76
 
