@@ -1,6 +1,6 @@
 {
     "minimal" : {
-        "title" : "1. Photon Minimal",
+        "title" : "1. NiceOS Minimal",
         "packages": [ "minimal", "linux", "initramfs" ],
         "visible" : true
     }
