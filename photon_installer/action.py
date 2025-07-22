@@ -1,10 +1,14 @@
-#/*
-# * Copyright © 2020 VMware, Inc.
-# * SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-only
-# */
-#
-#
-#    Author: Mahmoud Bassiouny <mbassiouny@vmware.com>
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+© 2025 ООО "НАЙС СОФТ ГРУПП" (ИНН 5024245440)
+Контакты: <niceos@ncsgp.ru>
+
+Описание:
+Модуль для добавления публичного ключа и разрешения root-доступа по SSH
+в системе NiceOS в процессе пост-установки.
+"""
 
 
 class Action(object):
