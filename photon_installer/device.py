@@ -6,6 +6,8 @@
 
 import subprocess
 import os
+import shutil
+
 
 
 # see https://www.kernel.org/doc/Documentation/admin-guide/devices.txt
@@ -59,3 +61,26 @@ class Device(object):
                       ))
 
         return devices
+
+    @staticmethod
+    def has_partitions(device):
+        """Return True if the device has any partitions."""
+        try:
+            output = subprocess.check_output(['lsblk', '-n', device], text=True)
+            return len(output.strip().splitlines()) > 1
+        except Exception:
+            return False
+
+    @staticmethod
+    def has_os(device):
+        """Return True if os-prober detects an OS on the given device."""
+        if not shutil.which('os-prober'):
+            return False
+        try:
+            output = subprocess.check_output(['os-prober'], text=True)
+        except Exception:
+            return False
+        for line in output.splitlines():
+            if line.startswith(device):
+                return True
+        return False
