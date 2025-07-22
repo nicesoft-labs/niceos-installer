@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
 """
 © 2025 ООО "НАЙС СОФТ ГРУПП" (ИНН 5024245440)
