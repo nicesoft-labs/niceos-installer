@@ -37,7 +37,7 @@ class CustomPartition(object):
         self.disk_to_index = {}
 
         self.window = Window(self.win_height, self.win_width, self.maxy, self.maxx,
-                             'Welcome to the Photon installer', False, can_go_next=False)
+                             'Welcome to the NiceOS installer', False, can_go_next=False)
         Device.refresh_devices()
 
     def initialize_devices(self):
