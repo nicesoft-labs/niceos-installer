@@ -1,5 +1,5 @@
 """
-Photon installer
+NiceOS installer
 """
 # /*
 #  * Copyright © 2020 VMware, Inc.
@@ -51,7 +51,7 @@ class PartitionType(Enum):
 
 class Installer(object):
     """
-    Photon installer
+    NiceOS installer
     """
 
     # List of allowed keys in kickstart config file.
@@ -96,7 +96,7 @@ class Installer(object):
         'prepkgsinstall',
         'prepkgsinstallscripts',
         'public_key',
-        'photon_docker_image',
+        'niceos_docker_image',
         'repos',
         'search_path',
         'setup_grub_script',
@@ -113,7 +113,7 @@ class Installer(object):
 
     def __init__(self, working_directory=Defaults.WORKING_DIRECTORY, rpm_path=None,
                  repo_paths=Defaults.REPO_PATHS, log_path=Defaults.LOG_PATH,
-                 photon_release_version=Defaults.PHOTON_RELEASE_VERSION):
+                 niceos_release_version=Defaults.NICEOS_RELEASE_VERSION):
         self.exiting = False
         self.interactive = False
         self.install_config = None
@@ -123,7 +123,7 @@ class Installer(object):
         self.logger = None
         self.cmd = None
         self.working_directory = working_directory
-        self.photon_release_version = photon_release_version
+        self.niceos_release_version = niceos_release_version
         self.ab_present = False
         self.mounts = []
         self.cwd = os.getcwd()
@@ -139,7 +139,7 @@ class Installer(object):
 
         self.installer_path = os.path.dirname(os.path.abspath(__file__))
 
-        self.photon_root = os.path.join(self.working_directory, "photon-chroot")
+        self.niceos_root = os.path.join(self.working_directory, "niceos-chroot")
         self.tdnf_conf_path = os.path.join(self.working_directory, "tdnf.conf")
 
         self.setup_grub_command = os.path.join(self.installer_path, "mk-setup-grub.sh")
@@ -192,8 +192,8 @@ class Installer(object):
         self.tdnf = tdnf.Tdnf(logger=self.logger,
                               config_file=self.tdnf_conf_path,
                               reposdir=self.working_directory,
-                              releasever=self.photon_release_version,
-                              installroot=self.photon_root)
+                              releasever=self.niceos_release_version,
+                              installroot=self.niceos_root)
 
         issue = self._check_install_config(install_config)
         if issue:
@@ -312,7 +312,7 @@ class Installer(object):
                                                 f"check if it need to be exported."
                                                 f"If so then please export dynamic values under preinstall script in ks file as below:"
                                                 f"\nexport {value[1:]}=\'<my-val>\'"
-                                                f"\nPlease refer https://github.com/vmware/photon-os-installer/blob/master/docs/ks_config.md#preinstall-optional")
+                                                f"\nPlease refer https://github.com/vmware/niceos-os-installer/blob/master/docs/ks_config.md#preinstall-optional")
 
 
     def _set_environment_variables(self, install_config):
@@ -490,9 +490,9 @@ class Installer(object):
             if not 'filesystem' in p:
                 p['filesystem'] = 'ext4'
 
-        # define 'hostname' as 'photon-<RANDOM STRING>'
+        # define 'hostname' as 'niceos-<RANDOM STRING>'
         if "hostname" not in install_config or install_config['hostname'] == "":
-            install_config['hostname'] = f'photon-{secrets.randbelow(16 ** 12):12x}'
+            install_config['hostname'] = f'niceos-{secrets.randbelow(16 ** 12):12x}'
 
         # Set password if needed.
         # Installer uses 'shadow_password' and optionally 'password'/'age'
@@ -514,9 +514,9 @@ class Installer(object):
         if 'log_level' not in install_config:
             install_config['log_level'] = 'info'
 
-        # Default Photon docker image
-        if 'photon_docker_image' not in install_config:
-            install_config['photon_docker_image'] = "photon:latest"
+        # Default NiceOS docker image
+        if 'niceos_docker_image' not in install_config:
+            install_config['niceos_docker_image'] = "niceos:latest"
 
 
         # if "repos" key not present in install_config or "repos=" provided by user through cmdline prioritize cmdline
@@ -527,8 +527,8 @@ class Installer(object):
             for idx,url in enumerate(repo_pathslist):
                 if url.startswith('/'):
                     url = f"file://{url}"
-                install_config['repos'][f"photon-local{idx}"] = {
-                                                "name": f"VMware Photon OS Installer-{idx}",
+                install_config['repos'][f"niceos-local{idx}"] = {
+                                                "name": f"VMware NiceOS OS Installer-{idx}",
                                                 "baseurl": url,
                                                 "gpgcheck": 0,
                                                 "enabled": 1 }
@@ -739,7 +739,7 @@ class Installer(object):
 
     def _install(self, stdscreen=None):
         """
-        Install photon system and handle exception
+        Install niceos system and handle exception
         """
         if self.install_config['ui']:
             # init the screen
@@ -760,7 +760,7 @@ class Installer(object):
             starty = (maxy - height) // 2
             startx = (maxx - width) // 2
             self.window = Window(height, width, maxy, maxx,
-                                 'Installing Photon', False)
+                                 'Installing NiceOS', False)
             self.progress_bar = ProgressBar(starty + 3,
                                             startx + progress_padding // 2,
                                             progress_width)
@@ -777,7 +777,7 @@ class Installer(object):
         # Congratulation screen
         if self.install_config['ui']:
             self.progress_bar.hide()
-            self.window.addstr(0, 0, 'Congratulations, Photon has been installed in {0} secs.\n\n'
+            self.window.addstr(0, 0, 'Congratulations, NiceOS has been installed in {0} secs.\n\n'
                                'Press any key to continue to boot...'
                                .format(self.progress_bar.time_elapsed))
             if self.interactive:
@@ -791,7 +791,7 @@ class Installer(object):
 
     def _unsafe_install(self):
         """
-        Install photon system
+        Install niceos system
         """
         self._partition_disks()
         self._format_partitions()
@@ -852,7 +852,7 @@ class Installer(object):
             return
 
         # setup network config files in chroot
-        nm = NetworkManager(self.install_config['network'], root_dir=self.photon_root)
+        nm = NetworkManager(self.install_config['network'], root_dir=self.niceos_root)
         if not nm.setup_network():
             self.logger.error("Failed to setup network!")
             self.exit_gracefully()
@@ -877,7 +877,7 @@ class Installer(object):
                 "/usr/bin/ansible-playbook",
                 "-c", "chroot",
                 # the comma is important:
-                "-i", self.photon_root + ",",
+                "-i", self.niceos_root + ",",
                 "-u", "root",
                 playbook]
 
@@ -922,7 +922,7 @@ class Installer(object):
             process.wait()
             assert process.returncode == 0, f"ansible run for playbook {playbook} failed"
             if logf is not None:
-                shutil.copy(ans_cfg['logfile'], os.path.join(self.photon_root, "var/log"))
+                shutil.copy(ans_cfg['logfile'], os.path.join(self.niceos_root, "var/log"))
 
 
     def _docker_images(self):
@@ -932,10 +932,10 @@ class Installer(object):
         if self.install_config['ui']:
             self.progress_bar.update_message("Installing docker images")
 
-        socket_file = os.path.join(self.photon_root, "var/run/docker.sock")
+        socket_file = os.path.join(self.niceos_root, "var/run/docker.sock")
         if os.path.exists(socket_file):
             os.remove(socket_file)
-        docker_process = subprocess.Popen(["chroot", self.photon_root, "dockerd"], text=True)
+        docker_process = subprocess.Popen(["chroot", self.niceos_root, "dockerd"], text=True)
         for timeout in range(15, 0, -1):
             if os.path.exists(socket_file):
                 mode = os.stat(socket_file).st_mode
@@ -951,11 +951,11 @@ class Installer(object):
 
             if method == "pull":
                 name = image['name']
-                subprocess.run(["chroot", self.photon_root, "docker", "pull", name], check=True)
+                subprocess.run(["chroot", self.niceos_root, "docker", "pull", name], check=True)
             elif method == "load":
                 filename = image['filename']
                 with open(filename, "rb") as fin:
-                    output = subprocess.check_output(["chroot", self.photon_root, "docker", "load"], stdin=fin, text=True)
+                    output = subprocess.check_output(["chroot", self.niceos_root, "docker", "load"], stdin=fin, text=True)
                 prefix = "Loaded image: "
                 if (output.startswith(prefix)):
                     name = output[len(prefix):].strip()
@@ -967,12 +967,12 @@ class Installer(object):
             if 'name' in image:
                 name = image['name']
                 for tag in image.get('tags', []):
-                    subprocess.run(["chroot", self.photon_root, "docker", "tag", name, tag], check=True)
+                    subprocess.run(["chroot", self.niceos_root, "docker", "tag", name, tag], check=True)
                     self.logger.info(f"image {name} has been tagged with {tag}")
                 if image.get('drop-tag', False):
                     if 'tags' not in image:
                         self.logger.warn("image has no 'tags' option, untagging it with no tags will remove it")
-                    subprocess.run(["chroot", self.photon_root, "docker", "rmi", name], check=True)
+                    subprocess.run(["chroot", self.niceos_root, "docker", "rmi", name], check=True)
                     self.logger.info(f"image {name} has been untagged")
 
         docker_process.terminate()
@@ -993,26 +993,26 @@ class Installer(object):
             retval, pkg_list = self.tdnf.run(["list", "--installed", "--disablerepo=*"])
             manifest['packages'] = pkg_list
 
-        with open(os.path.join(self.photon_root, "etc/fstab"), "rt") as f:
+        with open(os.path.join(self.niceos_root, "etc/fstab"), "rt") as f:
             manifest['fstab'] = jc.parse("fstab", f.read())
 
         df = jc.parse("df", subprocess.check_output(["df", "-P"], text=True))
-        df = [d for d in df if d['mounted_on'].startswith(self.photon_root)]
+        df = [d for d in df if d['mounted_on'].startswith(self.niceos_root)]
         for d in df:
-            d['mounted_on'] = d['mounted_on'][len(self.photon_root):]
+            d['mounted_on'] = d['mounted_on'][len(self.niceos_root):]
         manifest['df'] = df
 
         mount = jc.parse("mount", subprocess.check_output(["mount"], text=True))
-        mount = [m for m in mount if m['mount_point'].startswith(self.photon_root)]
+        mount = [m for m in mount if m['mount_point'].startswith(self.niceos_root)]
         for m in mount:
-            m['mount_point'] = m['mount_point'][len(self.photon_root):]
+            m['mount_point'] = m['mount_point'][len(self.niceos_root):]
         manifest['mount'] = mount
 
         with open(mf_file, "wt") as f:
             f.write(json.dumps(manifest))
 
         # write a copy to the image itself
-        mf_dir = os.path.join(self.photon_root, "var", "log", "poi")
+        mf_dir = os.path.join(self.niceos_root, "var", "log", "poi")
         os.makedirs(mf_dir, exist_ok=True)
         mf_file = os.path.join(mf_dir, "manifest.json")
         with open(mf_file, "wt") as f:
@@ -1029,9 +1029,9 @@ class Installer(object):
         for p in partitions:
             # only fstrim fs types that are supported to avoid error messages
             # instead of filtering for the fs type we could use '--quiet-unsupported',
-            # but this is not implemented in older fstrim versions in Photon 3.0
+            # but this is not implemented in older fstrim versions in NiceOS 3.0
             if p['filesystem'] in ['ext4', 'btrfs', 'xfs']:
-                mntpoint = os.path.join(self.photon_root, p['mountpoint'].strip('/'))
+                mntpoint = os.path.join(self.niceos_root, p['mountpoint'].strip('/'))
                 retval = self.cmd.run(["fstrim", mntpoint])
 
         if self.install_config.get('no_unmount', False):
@@ -1044,8 +1044,8 @@ class Installer(object):
                 self.logger.error(f"Failed to unmount {d}")
 
         self.cmd.run(['sync'])
-        if os.path.exists(self.photon_root):
-            shutil.rmtree(self.photon_root)
+        if os.path.exists(self.niceos_root):
+            shutil.rmtree(self.niceos_root)
 
         # Deactivate LVM VGs
         for vg in self.lvs_to_detach['vgs']:
@@ -1110,7 +1110,7 @@ class Installer(object):
         update fstab
         """
         if not fstab_path:
-            fstab_path = os.path.join(self.photon_root, "etc/fstab")
+            fstab_path = os.path.join(self.niceos_root, "etc/fstab")
         with open(fstab_path, "w") as fstab_file:
             fstab_file.write("#system\tmnt-pt\ttype\toptions\tdump\tfsck\n")
 
@@ -1190,7 +1190,7 @@ class Installer(object):
         if not self.ab_present:
             return
 
-        abupdate_conf = os.path.join(self.photon_root, "etc/abupdate.conf")
+        abupdate_conf = os.path.join(self.niceos_root, "etc/abupdate.conf")
 
         boot_map = {'efi':'EFI', 'bios':'BIOS', 'dualboot':'BOTH'}
         bootmode = self.install_config['bootmode']
@@ -1266,7 +1266,7 @@ class Installer(object):
             self._mount(partition['path'], partition['mountpoint'], options=options, create=True)
 
             if partition['filesystem'] == "btrfs" and "btrfs" in partition:
-                mntpoint = os.path.join(self.photon_root, partition['mountpoint'].strip('/'))
+                mntpoint = os.path.join(self.niceos_root, partition['mountpoint'].strip('/'))
                 if 'label' in partition['btrfs']:
                     self.cmd.run(f"btrfs filesystem label {mntpoint} {partition['btrfs']['label']}")
                 if 'subvols' in partition["btrfs"]:
@@ -1275,7 +1275,7 @@ class Installer(object):
 
     def _initialize_system(self):
         """
-        Prepare the system to install photon
+        Prepare the system to install niceos
         """
         if self.install_config['ui']:
             self.progress_bar.update_message('Initializing system...')
@@ -1285,9 +1285,9 @@ class Installer(object):
             self.logger.error("Rpm db path empty...")
             self.exit_gracefully()
         # Initialize rpm DB
-        os.makedirs(os.path.join(self.photon_root, rpm_db_path.lstrip("/")), exist_ok=True)
+        os.makedirs(os.path.join(self.niceos_root, rpm_db_path.lstrip("/")), exist_ok=True)
 
-        rpm_db_init_cmd = f"rpm --root {self.photon_root} --initdb --dbpath {rpm_db_path}"
+        rpm_db_init_cmd = f"rpm --root {self.niceos_root} --initdb --dbpath {rpm_db_path}"
         retval = self.cmd.run(rpm_db_init_cmd)
 
         if retval != 0:
@@ -1307,7 +1307,7 @@ class Installer(object):
             'urandom': (444, stat.S_IFCHR, 1, 9)
         }
         for device, (mode, dev_type, major, minor) in devices.items():
-            os.mknod(os.path.join(self.photon_root, "dev", device),
+            os.mknod(os.path.join(self.niceos_root, "dev", device),
                      mode | dev_type, os.makedev(major, minor))
 
 
@@ -1317,12 +1317,12 @@ class Installer(object):
 
         # device cgroup for docker
         for d in ["/sys/fs/cgroup"]:
-            os.makedirs(os.path.join(self.photon_root, d), exist_ok=True)
+            os.makedirs(os.path.join(self.niceos_root, d), exist_ok=True)
             self._mount(d, d, bind=True)
         # the following is neded on CentOS8, but not on Ubuntu 22.04
         for dev in ["hugetlb", "memory", "blkio", "cpu,cpuacct", "devices", "freezer", "cpuset"]:
             d = f"/sys/fs/cgroup/{dev}"
-            os.makedirs(os.path.join(self.photon_root, d), exist_ok=True)
+            os.makedirs(os.path.join(self.niceos_root, d), exist_ok=True)
             self._mount(d, d, bind=True)
 
         for d in ["/tmp", "/run"]:
@@ -1346,17 +1346,17 @@ class Installer(object):
                         temp_file = tempfile.mktemp()
                         result, msg = CommandUtils.wget(src, temp_file, False)
                         if result:
-                            os.makedirs(self.photon_root + os.path.dirname(dest), exist_ok=True)
-                            shutil.copy(temp_file, self.photon_root + dest)
+                            os.makedirs(self.niceos_root + os.path.dirname(dest), exist_ok=True)
+                            shutil.copy(temp_file, self.niceos_root + dest)
                         else:
                             self.logger.error(f"Download failed URL: {src} got error: {msg}")
                     else:
                         srcpath = self.getfile(src)
                         if (os.path.isdir(srcpath)):
-                            shutil.copytree(srcpath, self.photon_root + dest, dirs_exist_ok=True)
+                            shutil.copytree(srcpath, self.niceos_root + dest, dirs_exist_ok=True)
                         else:
-                            os.makedirs(self.photon_root + os.path.dirname(dest), exist_ok=True)
-                            shutil.copy(srcpath, self.photon_root + dest)
+                            os.makedirs(self.niceos_root + os.path.dirname(dest), exist_ok=True)
+                            shutil.copy(srcpath, self.niceos_root + dest)
 
 
     def _install_firstboot(self):
@@ -1366,24 +1366,24 @@ class Installer(object):
         firstboot = self.install_config['firstboot']
 
         # we may want to make these configurable in the future
-        script_dir = self.photon_root + "/etc/"
+        script_dir = self.niceos_root + "/etc/"
         os.makedirs(script_dir, exist_ok=True)
         shutil.copy(self.firstboot_script, script_dir)
         
-        service_dir = self.photon_root + "/etc/systemd/system/"
+        service_dir = self.niceos_root + "/etc/systemd/system/"
         os.makedirs(service_dir, exist_ok=True)
         shutil.copy(self.firstboot_service, service_dir)
 
-        with open(self.photon_root + "/etc/firstboot.to_be_run", "wt"):
+        with open(self.niceos_root + "/etc/firstboot.to_be_run", "wt"):
             pass
 
         service_name = os.path.basename(self.firstboot_service)
-        self.cmd.run_in_chroot(self.photon_root, f"systemctl enable {service_name}")
+        self.cmd.run_in_chroot(self.niceos_root, f"systemctl enable {service_name}")
 
         if 'scripts' in firstboot:
             scripts = firstboot['scripts']
             assert type(scripts) is list, "firstboot/scripts must be a list"
-            scripts_dir = self.photon_root + "/etc/firstboot.d"
+            scripts_dir = self.niceos_root + "/etc/firstboot.d"
             os.makedirs(scripts_dir, exist_ok=True)
             for script in scripts:
                 # we check for executability and correct extension, but only warn
@@ -1405,10 +1405,10 @@ class Installer(object):
         self._copy_additional_files()
         self._install_firstboot()
 
-        self.cmd.run_in_chroot(self.photon_root, "/sbin/ldconfig")
+        self.cmd.run_in_chroot(self.niceos_root, "/sbin/ldconfig")
 
         # Importing the pubkey
-        self.cmd.run_in_chroot(self.photon_root, "rpm --import /etc/pki/rpm-gpg/*")
+        self.cmd.run_in_chroot(self.niceos_root, "rpm --import /etc/pki/rpm-gpg/*")
 
 
     def _cleanup_tdnf_cache(self):
@@ -1419,7 +1419,7 @@ class Installer(object):
         if self.install_config['ui']:
             self.progress_bar.update_message('Cleaning up tdnf cache')
 
-        cache_dir = os.path.join(self.photon_root, 'var/cache/tdnf')
+        cache_dir = os.path.join(self.niceos_root, 'var/cache/tdnf')
         if (os.path.isdir(cache_dir)):
             shutil.rmtree(cache_dir)
 
@@ -1431,7 +1431,7 @@ class Installer(object):
         security = self.install_config['security']
         selinux = security.get('selinux', None)
         if selinux is not None:
-            subprocess.check_call(["chroot", self.photon_root, "/usr/sbin/setfiles", "/etc/selinux/default/contexts/files/file_contexts", "/"])
+            subprocess.check_call(["chroot", self.niceos_root, "/usr/sbin/setfiles", "/etc/selinux/default/contexts/files/file_contexts", "/"])
 
 
     def _cleanup_install_repo(self):
@@ -1460,7 +1460,7 @@ class Installer(object):
         device = self.install_config['disks']['default']['device']
         # Setup bios grub
         if bootmode == 'dualboot' or bootmode == 'bios':
-            path = os.path.join(self.photon_root, "boot")
+            path = os.path.join(self.niceos_root, "boot")
             retval = self.cmd.run(f"grub2-install --target=i386-pc --force --boot-directory={path} {device}")
             if retval != 0:
                 retval = self.cmd.run(['grub-install', '--target=i386-pc', '--force',
@@ -1475,8 +1475,8 @@ class Installer(object):
             if bootmode == 'dualboot':
                 esp_pn = '2'
 
-            os.makedirs(os.path.join(self.photon_root, "boot/efi/boot/grub2"), exist_ok=True)
-            with open(os.path.join(self.photon_root, 'boot/efi/boot/grub2/grub.cfg'), "w") as grub_cfg:
+            os.makedirs(os.path.join(self.niceos_root, "boot/efi/boot/grub2"), exist_ok=True)
+            with open(os.path.join(self.niceos_root, 'boot/efi/boot/grub2/grub.cfg'), "w") as grub_cfg:
                 grub_cfg.write(f"search -n -u {self._get_uuid(self.install_config['partitions_data']['boot'])} -s\n")
                 grub_cfg.write(f"set prefix=($root){self.install_config['partitions_data']['bootdirectory']}grub2\n")
                 grub_cfg.write(f"configfile {self.install_config['partitions_data']['bootdirectory']}grub2/grub.cfg\n")
@@ -1487,13 +1487,13 @@ class Installer(object):
                 exe_name = 'boot'+arch[:-5]+arch[-2:]+'.efi'
                 # Some platforms do not support adding boot entry. Thus, ignore failures
                 self.cmd.run(['efibootmgr', '--create', '--remove-dups', '--disk', device,
-                              '--part', esp_pn, '--loader', '/EFI/BOOT/' + exe_name, '--label', 'Photon'])
+                              '--part', esp_pn, '--loader', '/EFI/BOOT/' + exe_name, '--label', 'NiceOS'])
 
         # Create custom grub.cfg
         partitions_data = self.install_config['partitions_data']
         retval = self.cmd.run([
                     self.setup_grub_command,
-                    self.photon_root,
+                    self.niceos_root,
                     partitions_data['root'],
                     partitions_data['boot'],
                     partitions_data['bootdirectory'],
@@ -1637,8 +1637,8 @@ class Installer(object):
         if self.install_config['ui']:
             tdnf_cmd = ("tdnf install -y --releasever {0} --installroot {1} "
                         "-c {2} --setopt=reposdir={3} "
-                        "{4}").format(self.photon_release_version,
-                                      self.photon_root,
+                        "{4}").format(self.niceos_release_version,
+                                      self.niceos_root,
                                       self.tdnf_conf_path,
                                       self.working_directory,
                                       " ".join(selected_packages))
@@ -1713,8 +1713,8 @@ class Installer(object):
 
         selinux = security.get('selinux', None)
         if selinux is not None:
-            file_in = self.photon_root + "/etc/selinux/config"
-            file_out = self.photon_root + "/etc/selinux/config.tmp"
+            file_in = self.niceos_root + "/etc/selinux/config"
+            file_out = self.niceos_root + "/etc/selinux/config.tmp"
             with open(file_in, "rt") as fin:
                 with open(file_out, "wt") as fout:
                     found = False
@@ -1734,14 +1734,14 @@ class Installer(object):
         Enable network in chroot
         """
         if os.path.exists("/etc/resolv.conf"):
-            shutil.copy("/etc/resolv.conf", self.photon_root + '/etc/.')
+            shutil.copy("/etc/resolv.conf", self.niceos_root + '/etc/.')
 
     def _deactivate_network_in_chroot(self):
         """
         deactivate network in chroot
         """
-        if os.path.exists(self.photon_root + '/etc/resolv.conf'):
-            os.remove(self.photon_root + '/etc/resolv.conf')
+        if os.path.exists(self.niceos_root + '/etc/resolv.conf'):
+            os.remove(self.niceos_root + '/etc/resolv.conf')
 
 
     def partition_compare(self, p):
@@ -1813,10 +1813,10 @@ class Installer(object):
 
 
     def _mount(self, device, mntpoint, bind=False, options=None, fstype=None, create=False):
-        mntpoint = os.path.join(self.photon_root, mntpoint.strip("/"))
+        mntpoint = os.path.join(self.niceos_root, mntpoint.strip("/"))
 
         self.logger.info(f"mounting {device} to {mntpoint}")
-        assert mntpoint.startswith(self.photon_root)
+        assert mntpoint.startswith(self.niceos_root)
 
         if create and not os.path.isdir(mntpoint):
             os.makedirs(mntpoint)
@@ -1840,7 +1840,7 @@ class Installer(object):
     def _mount_btrfs_subvol(self, mountpoint, disk, subvol_name, fs_options=None, parent_subvol=""):
         """
         Mount btrfs subvolume if mountpoint specified.
-        Create mountpoint directory inside given photon root.
+        Create mountpoint directory inside given niceos root.
         If nested subvolume then append parent subvolume to identify the given subvolume to mount.
         If fs_options provided then append fs_options to given mount options.
         """
@@ -2253,7 +2253,7 @@ class Installer(object):
         """
 
         # check for public keys:
-        if os.path.exists(os.path.join(self.photon_root, "root/.ssh/authorized_keys")):
+        if os.path.exists(os.path.join(self.niceos_root, "root/.ssh/authorized_keys")):
             assert 'public_key' in self.install_config and 'reason' in self.install_config['public_key'], \
                 "public key set in '/root/.ssh/authorized_keys', but no reason given"
             self.logger.warn(f"WARNING: public key(s) configured in /root/.ssh/authorized_keys, reason: {self.install_config['public_key']['reason']}")
@@ -2262,7 +2262,7 @@ class Installer(object):
             # check machine id file
             # we accept the file not existing, empty, or containing "uninitialized"
             # see https://www.freedesktop.org/software/systemd/man/latest/machine-id.html
-            machine_id_file = os.path.join(self.photon_root, "etc/machine-id")
+            machine_id_file = os.path.join(self.niceos_root, "etc/machine-id")
             if os.path.exists(machine_id_file):
                 with open(machine_id_file, "rt") as f:
                     content = f.read().strip()
