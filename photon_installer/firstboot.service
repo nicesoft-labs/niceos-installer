@@ -1,4 +1,4 @@
-# firstboot service installed by photon-os-installer
+# firstboot service installed by niceos-os-installer
 
 [Unit]
 Description=POI Firstboot scripts
