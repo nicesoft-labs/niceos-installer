@@ -5,9 +5,9 @@
 import os
 
 class Defaults():
-    WORKING_DIRECTORY = "/mnt/photon-root"
+    WORKING_DIRECTORY = "/mnt/niceos-root"
     MOUNT_PATH = "/mnt/media"
     REPO_PATHS = MOUNT_PATH + "/RPMS"
     LOG_PATH = "/var/log"
     INSECURE_INSTALLATION = False
-    PHOTON_RELEASE_VERSION = "5.0"
+    NICEOS_RELEASE_VERSION = "5.2"
