@@ -27,7 +27,7 @@ class License(object):
         self.text_width = self.win_width - 6
 
         self.window = Window(self.win_height, self.win_width, self.maxy, self.maxx,
-                             'Welcome to the Photon installer', False)
+                             'Welcome to the NiceOS installer', False)
 
         if eula_file_path:
             self.eula_file_path = eula_file_path
