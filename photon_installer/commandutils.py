@@ -14,7 +14,7 @@ import subprocess
 import os
 import re
 import glob
-import crypt
+from passlib.hash import sha512_crypt
 import shutil
 import ssl
 import requests
@@ -147,8 +147,8 @@ class CommandUtils(object):
 
     @staticmethod
     def generate_password_hash(password):
-        """Generate hash for the password"""
-        return crypt.crypt(password)
+        """Generate hash for the password using SHA512."""
+        return sha512_crypt.hash(password)
 
     @staticmethod
     def _requests_get(url, verify):
