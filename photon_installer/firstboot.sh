@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# script installed by photon-os-installer
+# script installed by niceos-installer
 #
 
 SCRIPT_DIR=/etc/firstboot.d
