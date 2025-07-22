@@ -28,11 +28,11 @@ class IsoBuilder(object):
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
         self.pkg_list = []
-        self.working_dir = tempfile.mkdtemp(prefix="photon-", dir=self.artifact_path)
+        self.working_dir = tempfile.mkdtemp(prefix="niceos-", dir=self.artifact_path)
 
         if self.iso_name is None:
             self.iso_name = os.path.join(
-                self.artifact_path, f"photon-{self.photon_release_version}.iso"
+                self.artifact_path, f"niceos-{self.niceos_release_version}.iso"
             )
         else:
             if not self.iso_name.startswith("/"):
@@ -44,8 +44,8 @@ class IsoBuilder(object):
             self.initrd_pkg_list_file = os.path.join(os.path.dirname(__file__), "packages_installer_initrd.json")
 
         self.rpms_path = os.path.join(self.working_dir, "RPMS")
-        self.initrd_path = os.path.join(self.working_dir, "photon-chroot")
-        self.photon_docker_image = f"photon:{self.photon_release_version}"
+        self.initrd_path = os.path.join(self.working_dir, "niceos-chroot")
+        self.niceos_docker_image = f"niceos:{self.niceos_release_version}"
         self.logger = Logger.get_logger(
             os.path.join(self.artifact_path, "LOGS"), self.log_level, True
         )
@@ -56,7 +56,7 @@ class IsoBuilder(object):
 
         self.tdnf = Tdnf(
             logger=self.logger,
-            releasever=self.photon_release_version,
+            releasever=self.niceos_release_version,
             reposdir=self.yum_repos_dir,
         )
         if self.function == "build-rpm-ostree-iso":
@@ -85,11 +85,11 @@ class IsoBuilder(object):
                     "loadfont ascii\n",
                     'set gfxmode="1024x768"\n',
                     "gfxpayload=keep\n",
-                    "set theme=/boot/grub2/themes/photon/theme.txt\n",
+                    "set theme=/boot/grub2/themes/niceos/theme.txt\n",
                     "terminal_output gfxterm\n",
-                    "probe -s photondisk -u ($root)\n\n",
+                    "probe -s niceosdisk -u ($root)\n\n",
                     'menuentry "Install" {\n',
-                    f"linux /isolinux/vmlinuz root=/dev/ram0 loglevel=3 photon.media=UUID=$photondisk {self.boot_cmdline_param}\n",
+                    f"linux /isolinux/vmlinuz root=/dev/ram0 loglevel=3 niceos.media=UUID=$niceosdisk {self.boot_cmdline_param}\n",
                     "initrd /isolinux/initrd.img\n}",
                 ]
             )
@@ -102,7 +102,7 @@ class IsoBuilder(object):
             additional_files = ["ostree-repo.tar.gz"]
         install_option_data = {
             install_option_key: {
-                "title": "Photon Custom",
+                "title": "NiceOS Custom",
                 "packagelist_file": os.path.basename(self.packageslist_file),
                 "visible": False,
                 "additional-files": additional_files,
@@ -132,7 +132,7 @@ class IsoBuilder(object):
                             "baseurl": url,
                             "enabled": 1,
                             "gpgcheck": 0,
-                            "name": f"VMWare Photon Linux ({self.arch})",
+                            "name": f"VMWare NiceOS Linux ({self.arch})",
                             "skip_if_unavailable": True,
                         }
                     },
@@ -159,7 +159,7 @@ class IsoBuilder(object):
             working_dir=self.working_dir,
             initrd_pkgs=self.initrd_pkgs,
             rpms_path=self.rpms_path,
-            photon_release_version=self.photon_release_version,
+            niceos_release_version=self.niceos_release_version,
             pkg_list_file=self.packageslist_file,
             install_options_file=self.install_options_file,
             ostree_iso=self.ostree_iso,
@@ -305,16 +305,16 @@ class IsoBuilder(object):
 
     def createIsolinux(self):
         """
-        Install photon-iso-config rpm in working dir.
+        Install niceos-iso-config rpm in working dir.
         """
         os.makedirs(f"{self.working_dir}/isolinux", exist_ok=True)
         shutil.move(f"{self.working_dir}/initrd.img", f"{self.working_dir}/isolinux")
 
         self.logger.info(
-            "Installing photon-iso-config and syslinux in working directory..."
+            "Installing niceos-iso-config and syslinux in working directory..."
         )
         os.makedirs(f"{self.working_dir}/isolinux-temp")
-        pkg_list = ["photon-iso-config"]
+        pkg_list = ["niceos-iso-config"]
         if self.arch == "x86_64":
             pkg_list.append("syslinux")
 
@@ -328,10 +328,10 @@ class IsoBuilder(object):
         self.logger.info("...done.")
 
         for file in os.listdir(
-            f"{self.working_dir}/isolinux-temp/usr/share/photon-iso-config"
+            f"{self.working_dir}/isolinux-temp/usr/share/niceos-iso-config"
         ):
             shutil.copyfile(
-                f"{self.working_dir}/isolinux-temp/usr/share/photon-iso-config/{file}",
+                f"{self.working_dir}/isolinux-temp/usr/share/niceos-iso-config/{file}",
                 f"{self.working_dir}/isolinux/{file}",
             )
         if self.arch == 'x86_64':
@@ -348,7 +348,7 @@ class IsoBuilder(object):
                 )
 
         self.cmdUtil.remove_files([f"{self.working_dir}/isolinux-temp"])
-        for file in ["tdnf.conf", "photon-local.repo"]:
+        for file in ["tdnf.conf", "niceos-local.repo"]:
             if os.path.exists(f"{self.working_dir}/{file}"):
                 os.remove(f"{self.working_dir}/{file}")
 
@@ -400,8 +400,8 @@ class IsoBuilder(object):
             f"mv {self.working_dir}/boot/vmlinuz* {self.working_dir}/isolinux/vmlinuz"
         )
 
-        # ID in the initrd.gz now is PHOTON_VMWARE_CD . This is how we recognize that the cd is actually ours. touch this file there.
-        self.runCmd(f"touch {self.working_dir}/PHOTON_VMWARE_CD")
+        # ID in the initrd.gz now is NICEOS_VMWARE_CD . This is how we recognize that the cd is actually ours. touch this file there.
+        self.runCmd(f"touch {self.working_dir}/NICEOS_VMWARE_CD")
 
         self.addGrubConfig()
 
@@ -431,15 +431,15 @@ class IsoBuilder(object):
         # EFI boot
         build_iso_cmd += f"-e {self.efi_img} -no-emul-boot "
         build_iso_cmd += (
-            f'-V "PHOTON_$(date +%Y%m%d)" -o {self.iso_name} {self.working_dir}'
+            f'-V "NICEOS_$(date +%Y%m%d)" -o {self.iso_name} {self.working_dir}'
         )
         self.runCmd(build_iso_cmd)
 
     def validate_options(self):
-        assert self.photon_release_version is not None, "the Photon release version is required"
-        assert type(self.photon_release_version) is str, "the Photon relase version must be a string"
-        assert type(self.photon_release_version) != "", "the Photon release version must not be empty"
-        assert self.photon_release_version in (SUPPORTED_RELEASES + DEV_RELEASES), f"Photon release {self.photon_release_version} is not supported"
+        assert self.niceos_release_version is not None, "the NiceOS release version is required"
+        assert type(self.niceos_release_version) is str, "the NiceOS relase version must be a string"
+        assert type(self.niceos_release_version) != "", "the NiceOS release version must not be empty"
+        assert self.niceos_release_version in (SUPPORTED_RELEASES + DEV_RELEASES), f"NiceOS release {self.niceos_release_version} is not supported"
 
         if self.function == "build-rpm-ostree-iso":
             if not self.ostree_tar_path:
@@ -535,10 +535,10 @@ def main():
     )
     parser.add_argument(
         "-v",
-        "--photon-release-version",
-        dest="photon_release_version",
+        "--niceos-release-version",
+        dest="niceos_release_version",
         default=None,
-        help="<Required> Photon release version to build custom iso/initrd.",
+        help="<Required> NiceOS release version to build custom iso/initrd.",
     )
     parser.add_argument(
         "-o",
@@ -688,7 +688,7 @@ def main():
         function=options.function,
         packageslist_file=options.packageslist_file,
         kickstart_path=options.kickstart_path,
-        photon_release_version=options.photon_release_version,
+        niceos_release_version=options.niceos_release_version,
         log_level=options.log_level,
         initrd_pkg_list_file=options.initrd_pkgs_list_file,
         initrd_pkgs=options.initrd_pkgs.split(",") if options.initrd_pkgs else [],
@@ -708,7 +708,7 @@ def main():
     isoBuilder.validate_options()
 
     isoBuilder.logger.info(
-        f"Starting to generate photon {isoBuilder.photon_release_version} initrd.img..."
+        f"Starting to generate niceos {isoBuilder.niceos_release_version} initrd.img..."
     )
 
     isoBuilder.setup()
@@ -716,7 +716,7 @@ def main():
 
     if options.function in ["build-iso", "build-rpm-ostree-iso"]:
         isoBuilder.logger.info(
-            f"Starting to generate photon {isoBuilder.photon_release_version} iso..."
+            f"Starting to generate niceos {isoBuilder.niceos_release_version} iso..."
         )
         isoBuilder.build()
     elif options.function == "build-initrd":
