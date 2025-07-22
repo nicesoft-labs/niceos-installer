@@ -1,8 +1,15 @@
-# /*
-# * Copyright © 2020 VMware, Inc.
-# * SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-only
-# */
-# pylint: disable=invalid-name,missing-docstring
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+© 2025 ООО "НАЙС СОФТ ГРУПП" (ИНН 5024245440)
+Контакты: <niceos@ncsgp.ru>
+
+Описание:
+Модуль для добавления публичного ключа и разрешения root-доступа по SSH
+в системе NiceOS в процессе пост-установки.
+"""
+
 import subprocess
 import os
 import re
@@ -59,7 +66,7 @@ class CommandUtils(object):
             # If we need to update environment, modify the command to write env vars to a temp file
             if update_env:
                 # Create a temporary file for environment variables
-                env_fd, env_file_path = tempfile.mkstemp(prefix='photon_installer_env_', suffix='.txt')
+                env_fd, env_file_path = tempfile.mkstemp(prefix='niceos_installer_env_', suffix='.txt')
                 os.close(env_fd)  # Close the file descriptor, we'll write to it via shell redirection
 
                 if use_shell:
