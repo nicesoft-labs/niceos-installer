@@ -7,6 +7,7 @@ from windowstringreader import WindowStringReader
 from partitionpane import PartitionPane
 from readmultext import ReadMulText
 from confirmwindow import ConfirmWindow
+from confirmyeswindow import ConfirmYesWindow
 from actionresult import ActionResult
 from device import Device
 from installer import BIOSSIZE,ESPSIZE
@@ -57,6 +58,20 @@ class CustomPartition(object):
 
         self.device_index = self.disk_to_index[self.install_config['disk']]
 
+
+        disk = self.install_config['disk']
+        if Device.has_partitions(disk) or Device.has_os(disk):
+            confirm = ConfirmYesWindow(
+                11,
+                60,
+                self.maxy,
+                self.maxx,
+                'Existing partitions or an OS were detected on the selected disk.'
+            )
+            result = confirm.do_action()
+            if not result.success or not result.result.get('yes', False):
+                return ActionResult(False, {'goBack': True})
+        
         self.disk_buttom_items = []
         self.disk_buttom_items.append(('<Next>', self.next))
         self.disk_buttom_items.append(('<Create New>', self.create_function))
