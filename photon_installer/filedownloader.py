@@ -74,7 +74,7 @@ class FileDownloader(object):
         if not result.success:
             return result
 
-        status_window = Window(10,70, self.maxy, self.maxx, 'Installing Photon', False)
+        status_window = Window(10,70, self.maxy, self.maxx, 'Installing NiceOS', False)
         status_window.addstr(1, 0, 'Downloading file...')
         status_window.show_window()
 
