@@ -34,7 +34,7 @@ class IsoInitrd:
             "working_dir",
             "initrd_pkgs",
             "rpms_path",
-            "photon_release_version",
+            "niceos_release_version",
             "pkg_list_file",
             "install_options_file",
             "ostree_iso",
@@ -48,18 +48,18 @@ class IsoInitrd:
                 setattr(self, key, attr)
 
         self.cmd_util = CommandUtils(self.logger)
-        self.initrd_path = os.path.join(self.working_dir, "photon-chroot")
-        self.license_text = f"VMWARE {self.photon_release_version} LICENSE AGREEMENT"
+        self.initrd_path = os.path.join(self.working_dir, "niceos-chroot")
+        self.license_text = f"VMWARE {self.niceos_release_version} LICENSE AGREEMENT"
         if CommandUtils.exists_in_file(
             "BETA LICENSE AGREEMENT", os.path.join(self.working_dir, "EULA.txt")
         ):
             self.license_text = (
-                f"VMWARE {self.photon_release_version} BETA LICENSE AGREEMENT"
+                f"VMWARE {self.niceos_release_version} BETA LICENSE AGREEMENT"
             )
         self.tdnf = Tdnf(
             logger=self.logger,
             reposdir=self.working_dir,
-            releasever=self.photon_release_version,
+            releasever=self.niceos_release_version,
             installroot=self.initrd_path,
         )
 
@@ -69,7 +69,7 @@ class IsoInitrd:
             cd /installer
             ACTIVE_CONSOLE="$(< /sys/devices/virtual/tty/console/active)"
             install() {{
-            LANG=en_US.UTF-8 photon-installer -i iso -o {install_options_file} -e EULA.txt -t "{self.license_text}" -v {self.photon_release_version} && shutdown -r now
+            LANG=en_US.UTF-8 niceos-installer -i iso -o {install_options_file} -e EULA.txt -t "{self.license_text}" -v {self.niceos_release_version} && shutdown -r now
             }}
             try_run_installer() {{
             if [ "$ACTIVE_CONSOLE" == "tty0" ]; then
@@ -82,10 +82,10 @@ class IsoInitrd:
             """
 
         with open(
-            f"{self.initrd_path}/bin/bootphotoninstaller", "w", encoding="utf-8"
+            f"{self.initrd_path}/bin/bootniceosinstaller", "w", encoding="utf-8"
         ) as f:
             f.write(script_content)
-        os.chmod(f"{self.initrd_path}/bin/bootphotoninstaller", 0o755)
+        os.chmod(f"{self.initrd_path}/bin/bootniceosinstaller", 0o755)
 
     def create_init_script(self):
         with open(f"{self.initrd_path}/init", "w", encoding="utf-8") as init_script:
@@ -221,8 +221,8 @@ class IsoInitrd:
             # Create Local Repo
             create_repo_conf(
                 {
-                    "photon-local": {
-                        "name": "VMWare Photon Linux (x86_64)",
+                    "niceos-local": {
+                        "name": "VMWare niceos Linux (x86_64)",
                         "baseurl": f"file://{self.rpms_path}",
                         "gpgcheck": 0,
                         "enabled": 1,
@@ -241,7 +241,7 @@ class IsoInitrd:
         with open(
             f"{self.initrd_path}/etc/hostname", "w", encoding="utf-8"
         ) as hostname:
-            hostname.write("photon-installer\n")
+            hostname.write("niceos-installer\n")
 
         self.cmd_util.remove_files([f"{self.initrd_path}/var/cache/tdnf"])
         shutil.move(f"{self.initrd_path}/boot", self.working_dir)
@@ -286,8 +286,8 @@ class IsoInitrd:
         # Create iso repo
         create_repo_conf(
             {
-                "photon-iso": {
-                    "name": "VMWare Photon Linux (x86_64)",
+                "niceos-iso": {
+                    "name": "VMWare niceos Linux (x86_64)",
                     "baseurl": "file:///mnt/media/RPMS",
                     "gpgkey": "file:///etc/pki/rpm-gpg/VMWARE-RPM-GPG-KEY",
                     "gpgcheck": 1,
@@ -316,12 +316,12 @@ class IsoInitrd:
         self.cmd_util.replace_in_file(
             f"{self.initrd_path}/etc/passwd",
             "root:.*",
-            "root:x:0:0:root:/root:/bin/bootphotoninstaller",
+            "root:x:0:0:root:/root:/bin/bootniceosinstaller",
         )
         os.symlink("/dev/null", f"{self.initrd_path}/etc/systemd/system/vmtoolsd.service")
         os.symlink("/dev/null", f"{self.initrd_path}/etc/systemd/system/vgauthd.service")
 
-        os.makedirs(f"{self.initrd_path}/mnt/photon-root/photon-chroot", exist_ok=True)
+        os.makedirs(f"{self.initrd_path}/mnt/niceos-root/niceos-chroot", exist_ok=True)
         self.process_files()
         self.clean_up()
 
