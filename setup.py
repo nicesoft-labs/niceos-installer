@@ -13,16 +13,16 @@ with open(os.path.join(here, "requirements.txt")) as requirements_txt:
     REQUIRES = requirements_txt.read().splitlines()
 
 setup(
-    name='photon-installer',
-    description='Installer code for photon',
-    packages=find_packages(include=['photon_installer', 'photon_installer.modules']),
+    name='niceos-installer',
+    description='Installer code for niceos',
+    packages=find_packages(include=['niceos_installer', 'niceos_installer.modules']),
     install_requires=REQUIRES,
     include_package_data=True,
     zip_safe=False,
     entry_points={
         'console_scripts': [
-            'photon-installer = photon_installer.main:main',
-            'photon-iso-builder = photon_installer.isoBuilder:main'
+            'niceos-installer = niceos_installer.main:main',
+            'niceos-iso-builder = niceos_installer.isoBuilder:main'
         ]
     },
     version=get_installer_version(),
