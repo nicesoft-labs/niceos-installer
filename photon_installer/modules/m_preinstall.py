@@ -1,7 +1,18 @@
-# /*
-# * Copyright © 2020 VMware, Inc.
-# * SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-only
-# */
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+© 2025 ООО "НАЙС СОФТ ГРУПП" (ИНН 5024245440)
+Контакты: <niceos@ncsgp.ru>
+
+Запрещается любое изменение, копирование или распространение данного программного обеспечения
+без письменного разрешения ООО "НАЙС СОФТ ГРУПП".
+
+Описание:
+Модуль для выполнения предустановочных скриптов в системе NiceOS.
+Создает временную директорию, копирует и выполняет указанные скрипты с обновлением переменных окружения,
+а затем удаляет временные файлы.
+"""
 
 import os
 import commons
@@ -12,27 +23,61 @@ enabled = True
 
 
 def execute(installer):
-    if (
-        'preinstall' not in installer.install_config
-        and 'preinstallscripts' not in installer.install_config
-    ):
-        return
+    """
+    Выполняет предустановочные скрипты для системы NiceOS.
 
-    scripts = []
+    Args:
+        installer: Объект установщика NiceOS.
 
-    tmpdir = os.path.join("/tmp", "pre-install")
-    os.makedirs(tmpdir, exist_ok=True)
+    Raises:
+        OSError: Если произошла ошибка при работе с файловой системой.
+        RuntimeError: Если выполнение скриптов завершилось с ошибкой.
+    """
+    try:
+        # Проверка наличия конфигурации для предустановки
+        if (
+            'preinstall' not in installer.install_config
+            and 'preinstallscripts' not in installer.install_config
+        ):
+            installer.logger.debug("Конфигурация для предустановки отсутствует, пропуск")
+            return
 
-    if 'preinstall' in installer.install_config:
-        script_name = "preinstall-tmp.sh"
-        commons.make_script(tmpdir, script_name, installer.install_config['preinstall'])
-        scripts.append(os.path.join(tmpdir, script_name))
+        scripts = []
 
-    for script in installer.install_config.get('preinstallscripts', []):
-        script_file = installer.getfile(script)
-        shutil.copy(script_file, tmpdir)
-        scripts.append(os.path.join(tmpdir, os.path.basename(script_file)))
+        # Создание временной директории
+        tmpdir = os.path.join("/tmp", "pre-install")
+        installer.logger.debug(f"Создание временной директории: {tmpdir}")
+        os.makedirs(tmpdir, exist_ok=True)
 
-    commons.execute_scripts(installer, scripts, update_env=True)
+        # Обработка скрипта preinstall из конфигурации
+        if 'preinstall' in installer.install_config:
+            script_name = "preinstall-tmp.sh"
+            installer.logger.debug(f"Создание скрипта {script_name}")
+            commons.make_script(tmpdir, script_name, installer.install_config['preinstall'])
+            scripts.append(os.path.join(tmpdir, script_name))
+            installer.logger.debug(f"Скрипт {script_name} добавлен в список")
 
-    shutil.rmtree(tmpdir, ignore_errors=True)
+        # Обработка дополнительных скриптов из preinstallscripts
+        for script in installer.install_config.get('preinstallscripts', []):
+            script_file = installer.getfile(script)
+            installer.logger.debug(f"Копирование скрипта {script_file} в {tmpdir}")
+            shutil.copy(script_file, tmpdir)
+            scripts.append(os.path.join(tmpdir, os.path.basename(script_file)))
+            installer.logger.debug(f"Скрипт {os.path.basename(script_file)} добавлен в список")
+
+        # Выполнение скриптов с обновлением переменных окружения
+        installer.logger.info("Выполнение предустановочных скриптов")
+        commons.execute_scripts(installer, scripts, update_env=True)
+        installer.logger.info("Предустановочные скрипты успешно выполнены")
+
+        # Удаление временной директории
+        installer.logger.debug(f"Удаление временной директории: {tmpdir}")
+        shutil.rmtree(tmpdir, ignore_errors=True)
+        installer.logger.debug("Временная директория удалена")
+
+    except OSError as e:
+        installer.logger.error(f"Ошибка при работе с файловой системой: {str(e)}")
+        raise OSError(f"Не удалось выполнить операции с файлами: {str(e)}") from e
+    except RuntimeError as e:
+        installer.logger.error(f"Ошибка выполнения скриптов: {str(e)}")
+        raise RuntimeError(f"Ошибка выполнения предустановочных скриптов: {str(e)}") from e
