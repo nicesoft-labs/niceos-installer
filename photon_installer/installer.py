@@ -1078,7 +1078,6 @@ class Installer(object):
                         # don't raise an exception so we can continue with remaining devices
                         self.logger.error("failed to detach loop device '{device}'")
 
-
     def _get_partuuid(self, path):
         partuuid = subprocess.check_output(['blkid', '-s', 'PARTUUID', '-o', 'value', path],
                                            universal_newlines=True).rstrip('\n')
@@ -1093,7 +1092,62 @@ class Installer(object):
     def _get_uuid(self, path):
         return subprocess.check_output(['blkid', '-s', 'UUID', '-o', 'value', path],
                                        universal_newlines=True).rstrip('\n')
+    def _device_to_grub_root(self, device):
+        """Convert linux device path to GRUB root notation."""
+        m = re.match(r"/dev/sd([a-z])([0-9]+)", device)
+        if m:
+            disk = ord(m.group(1)) - ord('a')
+            part = m.group(2)
+            return f"(hd{disk},{part})"
+        m = re.match(r"/dev/vd([a-z])([0-9]+)", device)
+        if m:
+            disk = ord(m.group(1)) - ord('a')
+            part = m.group(2)
+            return f"(hd{disk},{part})"
+        m = re.match(r"/dev/nvme([0-9]+)n[0-9]+p([0-9]+)", device)
+        if m:
+            disk = m.group(1)
+            part = m.group(2)
+            return f"(hd{disk},{part})"
+        m = re.match(r"/dev/mmcblk([0-9]+)p([0-9]+)", device)
+        if m:
+            disk = m.group(1)
+            part = m.group(2)
+            return f"(hd{disk},{part})"
+        return "(hd0,1)"
 
+    def _detect_other_os(self):
+        """Run os-prober and build additional grub menu entries."""
+        if shutil.which('os-prober') is None:
+            self.logger.info('os-prober not found, skipping other OS detection')
+            return ''
+
+        output_file = os.path.join(self.working_directory, 'os_prober_output.txt')
+        retval = self.cmd.run(f"os-prober > {output_file}")
+        if retval != 0 or not os.path.exists(output_file):
+            self.logger.info('os-prober returned no results')
+            return ''
+
+        entries = []
+        with open(output_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split(':')
+                if len(parts) < 2:
+                    continue
+                device = parts[0]
+                desc = parts[1]
+                grub_root = self._device_to_grub_root(device)
+                entry = [f"menuentry '{desc}' {{",
+                         f"  set root={grub_root}",
+                         "  chainloader +1",
+                         "}"]
+                entries.append('\n'.join(entry))
+
+        return '\n'.join(entries)
+        
     def _add_btrfs_subvolume_to_fstab(self, mnt_src, fstab_file, btrfs_partition, parent_subvol=''):
         """
         Recursive function to add btrfs subvolume and nested subvolumes to fstab
@@ -1489,6 +1543,11 @@ class Installer(object):
                 self.cmd.run(['efibootmgr', '--create', '--remove-dups', '--disk', device,
                               '--part', esp_pn, '--loader', '/EFI/BOOT/' + exe_name, '--label', 'NiceOS'])
 
+        other_entries = self._detect_other_os()
+        entries_file = os.path.join(self.working_directory, 'grub_extra_entries.cfg')
+        with open(entries_file, 'w') as f:
+            f.write(other_entries)
+        
         # Create custom grub.cfg
         partitions_data = self.install_config['partitions_data']
         retval = self.cmd.run([
@@ -1498,7 +1557,8 @@ class Installer(object):
                     partitions_data['boot'],
                     partitions_data['bootdirectory'],
                     self.user_grub_cfg_fn,
-                    self.poi_kernel_cmdline
+                    self.poi_kernel_cmdline,
+                    entries_file
                 ])
 
         if retval != 0:
