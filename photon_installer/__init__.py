@@ -12,7 +12,7 @@
 
 import sys
 import glob
-import pkg_resources
+from importlib import metadata
 from os.path import dirname, basename, isfile, join
 
 
@@ -20,4 +20,7 @@ modules = glob.glob(join(dirname(__file__), "*.py"))
 __all__ = [ basename(f)[:-3] for f in modules if isfile(f) and not f.endswith('__init__.py')]
 sys.path.append(dirname(__file__))
 
-__version__ = pkg_resources.get_distribution(__name__).version
+try:
+    __version__ = metadata.version(__name__)
+except metadata.PackageNotFoundError:  # pragma: no cover - package not installed
+    __version__ = "0.0.0"
