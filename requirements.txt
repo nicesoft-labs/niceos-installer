@@ -2,3 +2,4 @@ Requests
 pyOpenSSL
 pyYAML
 jc
+passlib
