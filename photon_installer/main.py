@@ -22,7 +22,7 @@ def main():
     parser.add_argument("-l", "--log-path", dest="log_path", default="/var/log")
     parser.add_argument("-e", "--eula-file", dest="eula_file_path", default=None)
     parser.add_argument("-t", "--license-title", dest="license_display_title", default=None)
-    parser.add_argument("-v", "--photon-release-version", dest="photon_release_version", required=True)
+    parser.add_argument("-v", "--niceos-release-version", dest="niceos_release_version", required=True)
     parser.add_argument("-p", "--param", dest='params', action='append', default=[])
 
     options = parser.parse_args()
@@ -51,7 +51,7 @@ def main():
                 raise Exception('Please provide "--working-directory"')
 
             installer = Installer(working_directory=options.working_directory, repo_paths=options.repo_paths,
-                                log_path=options.log_path, photon_release_version=options.photon_release_version)
+                                log_path=options.log_path, niceos_release_version=options.niceos_release_version)
             installer.configure(install_config)
             installer.execute()
     except Exception as err:
