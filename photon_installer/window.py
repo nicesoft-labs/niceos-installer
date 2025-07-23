@@ -68,8 +68,7 @@ class Window(Action):
         self.textwin.bkgd(' ', curses.color_pair(2)) #Default Window color
 
         self.shadowwin = curses.newwin(height - 1, width - 1)
-        # self.shadowwin.bkgd(' ', curses.color_pair(0)) #Default shadow color
-        self.shadowwin.bkgd(' ', curses.A_INVIS)
+        self.shadowwin.bkgd(' ', curses.color_pair(0)) #Default shadow color
 
         self.contentpanel = curses.panel.new_panel(self.contentwin)
         self.textpanel = curses.panel.new_panel(self.textwin)
