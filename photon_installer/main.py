@@ -34,8 +34,8 @@ def parse_key_value_params(params_list):
 
 def validate_arguments(options):
     """Validate input arguments."""
-    if not options.photon_release_version:
-        raise ValueError(f"{Fore.RED}Ошибка: Не указана версия Photon OS (--photon-release-version){Style.RESET_ALL}")
+    if not options.niceos_release_version:
+        raise ValueError(f"{Fore.RED}Ошибка: Не указана версия Nice OS (--niceos-release-version){Style.RESET_ALL}")
     if options.image_type not in ['iso', 'ova', 'ami']:
         raise ValueError(
             f"{Fore.RED}Ошибка: Неподдерживаемый тип образа '{options.image_type}'. "
@@ -56,13 +56,13 @@ def validate_arguments(options):
 def setup_argument_parser():
     """Set up the argument parser with a human-readable help message in Russian."""
     parser = ArgumentParser(
-        description="Скрипт для создания установочных образов Photon OS",
+        description="Скрипт для создания установочных образов Nice OS",
         formatter_class=RawTextHelpFormatter,
-        prog="photon-installer",
+        prog="niceos-installer",
         epilog=(
             "Примеры использования:\n"
-            "  photon-installer --image-type iso --photon-release-version 5.0 --working-directory /tmp/workdir\n"
-            "  photon-installer --image-type ova --photon-release-version 5.0 --install-config ks.cfg "
+            "  niceos-installer --image-type iso --niceos-release-version 5.0 --working-directory /tmp/workdir\n"
+            "  niceos-installer --image-type ova --niceos-release-version 5.0 --install-config ks.cfg "
             "--working-directory /tmp/workdir --repo-paths /repo1,/repo2"
         )
     )
@@ -119,10 +119,10 @@ def setup_argument_parser():
         help="Заголовок окна лицензионного соглашения"
     )
     parser.add_argument(
-        "-v", "--photon-release-version",
-        dest="photon_release_version",
+        "-v", "--niceos-release-version",
+        dest="niceos_release_version",
         required=True,
-        help="Версия Photon OS (например, 5.0)"
+        help="Версия Nice OS (например, 5.0)"
     )
     parser.add_argument(
         "-p", "--param",
@@ -147,7 +147,7 @@ def main():
         options = parser.parse_args()
     except SystemExit:
         # Перехватываем ошибку парсинга аргументов для кастомизации сообщения
-        print(f"{Fore.RED}Ошибка: Не указана версия Photon OS. Пожалуйста, используйте флаг --photon-release-version{Style.RESET_ALL}")
+        print(f"{Fore.RED}Ошибка: Не указана версия Nice OS. Пожалуйста, используйте флаг --niceos-release-version{Style.RESET_ALL}")
         sys.exit(1)
 
     params = parse_key_value_params(options.params)
@@ -179,7 +179,7 @@ def main():
                 working_directory=options.working_directory,
                 repo_paths=options.repo_paths,
                 log_path=options.log_path,
-                photon_release_version=options.photon_release_version
+                niceos_release_version=options.niceos_release_version
             )
             installer.configure(install_config)
             installer.execute()
