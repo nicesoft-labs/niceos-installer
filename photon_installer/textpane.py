@@ -5,6 +5,7 @@
 #
 #    Author: Mahmoud Bassiouny <mbassiouny@vmware.com>
 import curses
+import curses.panel
 from actionresult import ActionResult
 from action import Action
 
