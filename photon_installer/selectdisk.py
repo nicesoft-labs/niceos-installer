@@ -11,11 +11,9 @@ from device import Device
 from window import Window
 from actionresult import ActionResult
 from menu import Menu
-from confirmyeswindow import ConfirmYesWindow
-
 
 class SelectDisk(object):
-    def __init__(self, maxy, maxx, install_config, logger=None):
+    def __init__(self, maxy, maxx, install_config):
         self.install_config = install_config
         self.menu_items = []
 
@@ -81,32 +79,8 @@ class SelectDisk(object):
 
     def auto_function(self):    #default is no partition
         self.install_config['autopartition'] = True
-        disk = self.install_config.get('disk')
-        if disk and (Device.has_partitions(disk) or Device.has_os(disk)):
-            confirm = ConfirmYesWindow(
-                11,
-                60,
-                self.maxy,
-                self.maxx,
-                'Existing partitions or an OS were detected on the selected disk.'
-            )
-            result = confirm.do_action()
-            if not result.success or not result.result.get('yes', False):
-                return ActionResult(False, None)
         return ActionResult(True, None)
 
     def custom_function(self):  #custom minimize partition number is 1
         self.install_config['autopartition'] = False
-        disk = self.install_config.get('disk')
-        if disk and (Device.has_partitions(disk) or Device.has_os(disk)):
-            confirm = ConfirmYesWindow(
-                11,
-                60,
-                self.maxy,
-                self.maxx,
-                'Existing partitions or an OS were detected on the selected disk.'
-            )
-            result = confirm.do_action()
-            if not result.success or not result.result.get('yes', False):
-                return ActionResult(False, None)
         return ActionResult(True, None)
