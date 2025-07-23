@@ -13,12 +13,13 @@ from commandutils import CommandUtils
 
 
 class LinuxSelector(object):
-    def __init__(self, maxy, maxx, install_config):
+    def __init__(self, maxy, maxx, install_config, logger=None):
         self.install_config = install_config
         self.maxx = maxx
         self.maxy = maxy
         self.win_width = 60
         self.win_height = 16
+        self.logger = logger
 
         self.win_starty = (self.maxy - self.win_height) // 2
         self.win_startx = (self.maxx - self.win_width) // 2
