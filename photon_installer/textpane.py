@@ -5,6 +5,8 @@
 #
 #    Author: Mahmoud Bassiouny <mbassiouny@vmware.com>
 import curses
+import re
+import markdown
 from actionresult import ActionResult
 from action import Action
 
@@ -51,37 +53,38 @@ class TextPane(Action):
         curses.panel.update_panels()
 
     def read_file(self, text_file_path, line_width):
-        with open(text_file_path, "rb") as f:
-            for line in f:
-                # expand tab to 8 spaces.
-                try:
-                    line = line.decode(encoding='latin1')
-                except UnicodeDecodeError:
-                    pass
-                line = line.expandtabs()
-                indent = len(line) - len(line.lstrip())
-                actual_line_width = line_width - indent
+        with open(text_file_path, "r", encoding="utf-8", errors="replace") as f:
+            raw_text = f.read()
+
+        # convert markdown to plain text
+        html_text = markdown.markdown(raw_text)
+        text_only = re.sub('<[^<]+?>', '', html_text)
+
+        for line in text_only.splitlines():
+            line = line.expandtabs()
+            indent = len(line) - len(line.lstrip())
+            actual_line_width = line_width - indent
+            line = line.strip()
+            # Adjust the words on the lines
+            while len(line) > actual_line_width:
+                sep_index = actual_line_width
+
+                while sep_index > 0 and line[sep_index-1] != ' ' and line[sep_index] != ' ':
+                    sep_index = sep_index - 1
+
+                current_line_width = sep_index
+                if sep_index == 0:
+                    current_line_width = actual_line_width
+                currLine = line[:current_line_width]
+                line = line[current_line_width:]
                 line = line.strip()
-                # Adjust the words on the lines
-                while len(line) > actual_line_width:
-                    sep_index = actual_line_width
 
-                    while sep_index > 0 and line[sep_index-1] != ' ' and line[sep_index] != ' ':
-                        sep_index = sep_index - 1
+                # Lengthen the line with spaces
+                self.lines.append(' ' * indent + currLine +
+                                  ' ' *(actual_line_width - len(currLine)))
 
-                    current_line_width = sep_index
-                    if sep_index == 0:
-                        current_line_width = actual_line_width
-                    currLine = line[:current_line_width]
-                    line = line[current_line_width:]
-                    line = line.strip()
-
-                    # Lengthen the line with spaces
-                    self.lines.append(' ' * indent + currLine +
-                                      ' ' *(actual_line_width - len(currLine)))
-
-                # lengthen the line with spaces
-                self.lines.append(' ' * indent + line + ' ' *(actual_line_width - len(line)))
+            # lengthen the line with spaces
+            self.lines.append(' ' * indent + line + ' ' *(actual_line_width - len(line)))
 
     def navigate(self, n):
         if self.show_scroll:
