@@ -1,10 +1,9 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-"""
-© 2025 ООО "НАЙС СОФТ ГРУПП" (ИНН 5024245440)
-Контакты: <niceos@ncsgp.ru>
-"""
+# /*
+# * Copyright © 2020 VMware, Inc.
+# * SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-only
+# */
+#
+#    Author: Mahmoud Bassiouny <mbassiouny@vmware.com>
 
 import os
 import logging
@@ -86,6 +85,7 @@ class License(object):
                                       self.eula_file_path, self.text_height, accept_decline_items,
                                       logger=self.logger)
             self.window.set_action_panel(self.text_pane)
+            self.text_pane.refresh()  # Явное отображение текста перед вызовом do_action
             result = self.window.do_action()
             if self.logger is not None:
                 self.logger.info(f"Результат отображения лицензии: {result}")
