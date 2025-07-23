@@ -16,6 +16,7 @@ class ReadText(Action):
     def __init__(self, maxy, maxx, textwin, y, install_config, field,
                  confirmation_error_msg, echo_char, accepted_chars, validation_fn,
                  conversion_fn, default_string=None, tab_enabled=True):
+        self.help_callback = None
         self.textwin = textwin
         self.maxy = maxy
         self.maxx = maxx
@@ -47,6 +48,9 @@ class ReadText(Action):
     def hide(self):
         return
 
+    def set_help_callback(self, cb):
+        self.help_callback = cb
+    
     def init_text(self):
         self.x = 0
         #initialize the ----
@@ -82,6 +86,11 @@ class ReadText(Action):
             else:
                 curs_loc = len(self.str)
             ch = self.textwin.getch(self.y, curs_loc)
+            if ch == curses.KEY_F1 and self.help_callback:
+                curses.curs_set(0)
+                self.help_callback()
+                curses.curs_set(1)
+                continue
 
             update_text = False
             if ch in [curses.KEY_ENTER, ord('\n')]:
