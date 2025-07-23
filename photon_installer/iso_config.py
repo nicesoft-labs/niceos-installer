@@ -26,6 +26,8 @@ from filedownloader import FileDownloader
 from netconfig import NetworkConfigure
 from stigenable import StigEnable
 from wheelselector import WheelSelector
+from timezoneselector import TimezoneSelector
+
 
 
 
@@ -199,6 +201,7 @@ class IsoConfig(object):
     def add_ui_pages(self, install_config, ui_config, maxy, maxx):
         items = []
         license_agreement = License(maxy, maxx, ui_config['eula_file_path'], ui_config['license_display_title'])
+        timezone_selector = TimezoneSelector(maxy, maxx, install_config)
         select_disk = SelectDisk(maxy, maxx, install_config)
         custom_partition = CustomPartition(maxy, maxx, install_config)
         package_selector = PackageSelector(maxy, maxx, install_config, ui_config['options_file'])
@@ -291,6 +294,7 @@ class IsoConfig(object):
         # This represents the installer screens, the bool indicates if
         # we can go back to this window or not
         items.append((license_agreement.display, False))
+        items.append((timezone_selector.display, True))
         items.append((select_disk.display, True))
         items.append((custom_partition.display, False))
         items.append((package_selector.display, True))
