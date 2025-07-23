@@ -7,15 +7,15 @@
 """
 
 import curses
+import curses.panel
 import logging
 from actionresult import ActionResult
 from action import Action
 
 
 class Window(Action):
-    def __init__(self, height, width, maxy, maxx, title, can_go_back,
-                 action_panel=None, items=None, menu_helper=None, position=0,
-                 tab_enabled=True, can_go_next=False, read_text=False, logger=None):
+    def __init__(self, height, width, maxy, maxx, title, can_go_back, action_panel=None, items=None,
+                 menu_helper=None, position=0, tab_enabled=True, can_go_next=False, read_text=False, logger=None):
         """
         Инициализация окна пользовательского интерфейса.
 
@@ -25,22 +25,21 @@ class Window(Action):
         - maxy (int): Максимальная координата Y экрана.
         - maxx (int): Максимальная координата X экрана.
         - title (str): Заголовок окна.
-        - can_go_back (bool): Разрешить кнопку "Назад".
-        - action_panel (Action, optional): Панель действия (например, Menu).
-        - items (list, optional): Список элементов меню (кортежи: текст, функция, аргумент).
+        - can_go_back (bool): Возможность возврата назад.
+        - action_panel (object, optional): Панель действий (например, TextPane или Menu).
+        - items (list, optional): Список элементов меню (кортежи с текстом и функцией).
         - menu_helper (callable, optional): Функция-обработчик для меню.
-        - position (int): Начальная позиция выбора.
+        - position (int): Начальная позиция выделения.
         - tab_enabled (bool): Разрешить навигацию клавишей Tab.
-        - can_go_next (bool): Разрешить кнопку "Далее".
+        - can_go_next (bool): Разрешить переход к следующей странице.
         - read_text (bool): Режим чтения текста.
-        - logger (logging.Logger, optional): Логгер для записи событий.
+        - logger (logging.Logger, optional): Логгер для записи событий. Если None, логирование не выполняется.
         """
         super().__init__()
         self.logger = logger
         if self.logger is not None:
             self.logger.debug(f"Инициализация Window: height={height}, width={width}, maxy={maxy}, maxx={maxx}, "
-                             f"title={title}, can_go_back={can_go_back}, can_go_next={can_go_next}, "
-                             f"position={position}, tab_enabled={tab_enabled}, read_text={read_text}")
+                             f"title={title}, can_go_back={can_go_back}, can_go_next={can_go_next}")
 
         # Проверка входных параметров
         if not isinstance(height, int) or not isinstance(width, int) or height <= 0 or width <= 0:
@@ -55,51 +54,57 @@ class Window(Action):
             if self.logger is not None:
                 self.logger.error(f"Недопустимый заголовок: {title}")
             raise ValueError("title должен быть строкой")
-        if items is not None and (not isinstance(items, list) or
-                                  not all(isinstance(item, tuple) and len(item) >= 2 for item in items)):
+        if items is not None and not isinstance(items, list):
             if self.logger is not None:
                 self.logger.error(f"Недопустимый список элементов: {items}")
-            raise ValueError("items должен быть списком кортежей с минимум 2 элементами")
-        if height > maxy or width > maxx:
-            if self.logger is not None:
-                self.logger.error(f"Размеры окна превышают экран: height={height}>maxy={maxy}, width={width}>maxx={maxx}")
-            raise ValueError("Размеры окна не должны превышать размеры экрана")
+            raise ValueError("items должен быть списком или None")
 
         self.can_go_back = can_go_back
         self.can_go_next = can_go_next
-        self.height = min(height, maxy - 2)  # Ограничение размеров окна
-        self.width = min(width, maxx - 2)
-        self.y = (maxy - self.height) // 2
-        self.x = (maxx - self.width) // 2
-        title = f' {title} '
-        self.tab_enabled = tab_enabled
-        self.read_text = read_text
-        self.position = position
+        self.height = height
+        self.width = width
+        self.y = (maxy - height) // 2
+        self.x = (maxx - width) // 2
+        title = ' ' + title + ' '
         self.items = items if items else []
         self.menu_helper = menu_helper
-        self.action_panel = action_panel
+        self.position = position
+        self.tab_enabled = tab_enabled
+        self.read_text = read_text
 
         try:
-            self.contentwin = curses.newwin(self.height - 1, self.width - 1)
+            self.contentwin = curses.newwin(height - 1, width - 1)
             self.contentwin.bkgd(' ', curses.color_pair(2))
             self.contentwin.erase()
             self.contentwin.box()
-            self.contentwin.addstr(0, (self.width - 1 - len(title)) // 2, title)
+            self.contentwin.addstr(0, (width - 1 - len(title)) // 2, title)
             self.contentwin.keypad(1)
+            if self.logger is not None:
+                self.logger.debug("Окно contentwin инициализировано")
 
-            self.textwin = curses.newwin(self.height - 5, self.width - 5)
+            self.textwin = curses.newwin(height - 5, width - 5)
             self.textwin.bkgd(' ', curses.color_pair(2))
+            if self.logger is not None:
+                self.logger.debug("Окно textwin инициализировано")
 
-            self.shadowwin = curses.newwin(self.height - 1, self.width - 1)
+            self.shadowwin = curses.newwin(height - 1, width - 1)
             self.shadowwin.bkgd(' ', curses.color_pair(0))
+            if self.logger is not None:
+                self.logger.debug("Окно shadowwin инициализировано")
 
             self.contentpanel = curses.panel.new_panel(self.contentwin)
             self.textpanel = curses.panel.new_panel(self.textwin)
             self.shadowpanel = curses.panel.new_panel(self.shadowwin)
+            if self.logger is not None:
+                self.logger.debug("Панели contentpanel, textpanel, shadowpanel созданы")
 
+            self.action_panel = action_panel
             self.dist = 0
+            newy = 5
+
             if self.can_go_back:
-                self.contentwin.addstr(self.height - 3, 5, '<Назад>')
+                self.contentwin.addstr(height - 3, 5, '<Назад>')
+                newy += len('<Назад>')
             if self.can_go_next and self.can_go_back:
                 self.update_next_item()
 
@@ -108,52 +113,53 @@ class Window(Action):
                 count = len(self.items)
                 for item in self.items:
                     self.dist -= len(item[0])
-                self.dist = self.dist // (count + 1) if count > 0 else 0
-                newy = 5 + len('<Назад>') + self.dist
+                self.dist = self.dist // count if count > 0 else 0
+                newy += self.dist
                 for item in self.items:
-                    self.contentwin.addstr(self.height - 3, newy, item[0])
+                    self.contentwin.addstr(height - 3, newy, item[0])
                     newy += len(item[0]) + self.dist
-
-            self.hide_window()
-            if self.logger is not None:
-                self.logger.debug(f"Окно инициализировано: y={self.y}, x={self.x}, dist={self.dist}")
+                if self.logger is not None:
+                    self.logger.debug(f"Создано меню с {len(self.items)} элементами, dist={self.dist}")
         except Exception as e:
             if self.logger is not None:
-                self.logger.error(f"Ошибка при создании окна: {str(e)}")
+                self.logger.error(f"Ошибка при инициализации окна: {str(e)}")
             raise
 
+        # Hide window after initialization to match previous behavior
+        # self.hide_window()
+    
     def update_next_item(self):
         """
-        Добавление элемента "<Далее>" в меню.
+        Добавление элемента '<Далее>' в меню.
         """
         if self.logger is not None:
-            self.logger.debug("Добавление элемента <Далее>")
+            self.logger.debug("Добавление элемента '<Далее>'")
         self.position = 1
         self.items.append(('<Далее>', self.next_function, False))
         self.tab_enabled = False
         if self.logger is not None:
-            self.logger.debug("Элемент <Далее> добавлен, tab_enabled=False")
+            self.logger.debug("Элемент '<Далее>' добавлен, tab_enabled=False")
 
     def next_function(self):
         """
-        Обработка выбора "<Далее>".
+        Обработка действия перехода вперед.
 
         Возвращает:
         - ActionResult: Результат действия.
         """
         if self.logger is not None:
-            self.logger.debug("Обработка выбора <Далее>")
+            self.logger.info("Пользователь выбрал '<Далее>'")
         return ActionResult(True, None)
 
     def set_action_panel(self, action_panel):
         """
-        Установка панели действия.
+        Установка панели действий.
 
         Аргументы:
-        - action_panel (Action): Панель действия (например, Menu).
+        - action_panel (object): Панель действий (например, TextPane или Menu).
         """
         if self.logger is not None:
-            self.logger.debug(f"Установка панели действия: {action_panel}")
+            self.logger.debug(f"Установка панели действий: {action_panel}")
         self.action_panel = action_panel
 
     def update_menu(self, action_result):
@@ -161,10 +167,10 @@ class Window(Action):
         Обновление меню на основе результата действия.
 
         Аргументы:
-        - action_result (ActionResult): Результат действия от панели.
+        - action_result (ActionResult): Результат предыдущего действия.
 
         Возвращает:
-        - ActionResult: Результат действия.
+        - ActionResult: Результат обработки меню.
         """
         if self.logger is not None:
             self.logger.debug(f"Обновление меню: action_result={action_result}")
@@ -172,40 +178,43 @@ class Window(Action):
         try:
             if action_result.result and 'goNext' in action_result.result and action_result.result['goNext']:
                 if self.logger is not None:
-                    self.logger.info("Переход вперед")
+                    self.logger.info("Переход вперед по goNext")
                 return ActionResult(True, None)
 
             if self.position == 0:
                 self.contentwin.addstr(self.height - 3, 5, '<Назад>')
                 self.contentwin.refresh()
                 self.hide_window()
-                self.action_panel.hide()
+                if self.action_panel:
+                    self.action_panel.hide()
                 if self.logger is not None:
-                    self.logger.info("Выбран <Назад>")
+                    self.logger.info("Пользователь выбрал '<Назад>'")
                 return ActionResult(False, None)
 
             if action_result.result and 'diskIndex' in action_result.result:
                 params = action_result.result['diskIndex']
                 if self.menu_helper:
-                    self.menu_helper(params)
                     if self.logger is not None:
-                        self.logger.debug(f"Вызван menu_helper с параметрами: {params}")
+                        self.logger.debug(f"Вызов menu_helper с параметрами: {params}")
+                    self.menu_helper(params)
 
             result = self.items[self.position - 1][1]()
             if result.success:
                 self.hide_window()
-                self.action_panel.hide()
+                if self.action_panel:
+                    self.action_panel.hide()
                 if self.logger is not None:
                     self.logger.info(f"Успешное выполнение действия: {result}")
                 return result
-            if 'goBack' in result.result and result.result['goBack']:
-                self.contentwin.refresh()
-                self.hide_window()
-                self.action_panel.hide()
-                if self.logger is not None:
-                    self.logger.info("Возврат назад")
-                return ActionResult(False, None)
-            return result
+            else:
+                if 'goBack' in result.result and result.result['goBack']:
+                    self.contentwin.refresh()
+                    self.hide_window()
+                    if self.action_panel:
+                        self.action_panel.hide()
+                    if self.logger is not None:
+                        self.logger.info("Возврат назад по goBack")
+                    return ActionResult(False, None)
         except Exception as e:
             if self.logger is not None:
                 self.logger.error(f"Ошибка при обновлении меню: {str(e)}")
@@ -230,15 +239,17 @@ class Window(Action):
 
             if not self.action_panel:
                 if self.logger is not None:
-                    self.logger.warning("Панель действия отсутствует")
-                return ActionResult(False, {"error": "Панель действия не установлена"})
+                    self.logger.warning("action_panel не установлен")
+                return ActionResult(False, {"error": "action_panel не установлен"})
 
             action_result = self.action_panel.do_action()
+            if self.logger is not None:
+                self.logger.debug(f"Результат action_panel.do_action: {action_result}")
 
             if action_result.success:
                 if action_result.result and 'goNext' in action_result.result and action_result.result['goNext']:
                     if self.logger is not None:
-                        self.logger.info("Переход вперед")
+                        self.logger.info("Переход вперед по goNext")
                     return ActionResult(True, None)
                 if self.position != 0:
                     self.items[self.position - 1][1]()
@@ -246,42 +257,46 @@ class Window(Action):
                     return self.update_menu(action_result)
                 self.hide_window()
                 if self.logger is not None:
-                    self.logger.info(f"Результат действия: {action_result}")
+                    self.logger.info(f"Действие успешно, результат: {action_result}")
                 return action_result
-
-            if not self.tab_enabled and action_result.result and 'direction' in action_result.result:
-                self.refresh(action_result.result['direction'], True)
-            if action_result.result and 'goBack' in action_result.result and action_result.result['goBack']:
-                self.hide_window()
-                self.action_panel.hide()
-                if self.logger is not None:
-                    self.logger.info("Возврат назад")
-                return action_result
+            else:
+                if not self.tab_enabled and action_result.result and 'direction' in action_result.result:
+                    self.refresh(action_result.result['direction'], True)
+                if action_result.result and 'goBack' in action_result.result and action_result.result['goBack']:
+                    self.hide_window()
+                    self.action_panel.hide()
+                    if self.logger is not None:
+                        self.logger.info("Возврат назад по goBack")
+                    return action_result
+                else:
+                    self.refresh(0, True)
 
             while not action_result.success:
                 if self.read_text:
                     is_go_back = self.position == 0
                     action_result = self.action_panel.do_action(returned=True, go_back=is_go_back)
+                    if self.logger is not None:
+                        self.logger.debug(f"Результат action_panel.do_action (read_text): {action_result}")
                     if action_result.success:
                         if self.items:
                             return self.update_menu(action_result)
                         self.hide_window()
                         if self.logger is not None:
-                            self.logger.info(f"Успешное выполнение действия: {action_result}")
+                            self.logger.info(f"Действие успешно (read_text): {action_result}")
                         return action_result
-                    if action_result.result and 'goBack' in action_result.result and action_result.result['goBack']:
-                        self.hide_window()
-                        self.action_panel.hide()
-                        if self.logger is not None:
-                            self.logger.info("Возврат назад")
-                        return action_result
-                    if action_result.result and 'direction' in action_result.result:
-                        self.refresh(action_result.result['direction'], True)
+                    else:
+                        if action_result.result and 'goBack' in action_result.result and action_result.result['goBack']:
+                            self.hide_window()
+                            self.action_panel.hide()
+                            if self.logger is not None:
+                                self.logger.info("Возврат назад по goBack (read_text)")
+                            return action_result
+                        if action_result.result and 'direction' in action_result.result:
+                            self.refresh(action_result.result['direction'], True)
                 else:
                     key = self.contentwin.getch()
                     if self.logger is not None:
                         self.logger.debug(f"Получена клавиша: {key}")
-
                     if key in [curses.KEY_ENTER, ord('\n')]:
                         if self.position == 0:
                             self.contentwin.addstr(self.height - 3, 5, '<Назад>')
@@ -289,15 +304,15 @@ class Window(Action):
                             self.hide_window()
                             self.action_panel.hide()
                             if self.logger is not None:
-                                self.logger.info("Выбран <Назад>")
+                                self.logger.info("Пользователь выбрал '<Назад>'")
                             return ActionResult(False, None)
                         else:
                             if action_result.result and 'diskIndex' in action_result.result:
                                 params = action_result.result['diskIndex']
                                 if self.menu_helper:
-                                    self.menu_helper(params)
                                     if self.logger is not None:
-                                        self.logger.debug(f"Вызван menu_helper с параметрами: {params}")
+                                        self.logger.debug(f"Вызов menu_helper с параметрами: {params}")
+                                    self.menu_helper(params)
                             result = self.items[self.position - 1][1]()
                             if result.success:
                                 self.hide_window()
@@ -305,52 +320,62 @@ class Window(Action):
                                 if self.logger is not None:
                                     self.logger.info(f"Успешное выполнение действия: {result}")
                                 return result
-                            if 'goBack' in result.result and result.result['goBack']:
-                                self.contentwin.refresh()
-                                self.hide_window()
-                                self.action_panel.hide()
-                                if self.logger is not None:
-                                    self.logger.info("Возврат назад")
-                                return ActionResult(False, None)
+                            else:
+                                if 'goBack' in result.result and result.result['goBack']:
+                                    self.contentwin.refresh()
+                                    self.hide_window()
+                                    self.action_panel.hide()
+                                    if self.logger is not None:
+                                        self.logger.info("Возврат назад по goBack")
+                                    return ActionResult(False, None)
                     elif key == ord('\t'):
                         if not self.tab_enabled:
                             continue
                         self.refresh(0, False)
                         action_result = self.action_panel.do_action()
+                        if self.logger is not None:
+                            self.logger.debug(f"Результат action_panel.do_action (Tab): {action_result}")
                         if action_result.success:
                             self.hide_window()
                             if self.logger is not None:
-                                self.logger.info(f"Успешное выполнение действия: {action_result}")
+                                self.logger.info(f"Действие успешно (Tab): {action_result}")
                             return action_result
-                        self.refresh(0, True)
+                        else:
+                            self.refresh(0, True)
                     elif key in [curses.KEY_UP, curses.KEY_LEFT]:
                         if key == curses.KEY_UP and not self.tab_enabled:
                             self.action_panel.navigate(-1)
                             action_result = self.action_panel.do_action()
+                            if self.logger is not None:
+                                self.logger.debug(f"Результат action_panel.do_action (Up): {action_result}")
                             if action_result.success:
                                 if self.items:
                                     return self.update_menu(action_result)
                                 self.hide_window()
                                 if self.logger is not None:
-                                    self.logger.info(f"Успешное выполнение действия: {action_result}")
+                                    self.logger.info(f"Действие успешно (Up): {action_result}")
                                 return action_result
-                            if action_result.result and 'direction' in action_result.result:
-                                self.refresh(action_result.result['direction'], True)
+                            else:
+                                if action_result.result and 'direction' in action_result.result:
+                                    self.refresh(action_result.result['direction'], True)
                         else:
                             self.refresh(-1, True)
                     elif key in [curses.KEY_DOWN, curses.KEY_RIGHT]:
                         if key == curses.KEY_DOWN and not self.tab_enabled:
                             self.action_panel.navigate(1)
                             action_result = self.action_panel.do_action()
+                            if self.logger is not None:
+                                self.logger.debug(f"Результат action_panel.do_action (Down): {action_result}")
                             if action_result.success:
                                 if self.items:
                                     return self.update_menu(action_result)
                                 self.hide_window()
                                 if self.logger is not None:
-                                    self.logger.info(f"Успешное выполнение действия: {action_result}")
+                                    self.logger.info(f"Действие успешно (Down): {action_result}")
                                 return action_result
-                            if action_result.result and 'direction' in action_result.result:
-                                self.refresh(action_result.result['direction'], True)
+                            else:
+                                if action_result.result and 'direction' in action_result.result:
+                                    self.refresh(action_result.result['direction'], True)
                         else:
                             self.refresh(1, True)
         except Exception as e:
@@ -363,48 +388,67 @@ class Window(Action):
         Обновление отображения меню.
 
         Аргументы:
-        - n (int): Смещение позиции (положительное — вниз, отрицательное — вверх).
-        - select (bool): Флаг подсветки выбранного элемента.
+        - n (int): Смещение позиции выделения.
+        - select (bool): Флаг выделения элемента.
         """
-        if not self.can_go_back:
-            if self.logger is not None:
-                self.logger.debug("Обновление меню пропущено: can_go_back=False")
-            return
-
         if self.logger is not None:
-            self.logger.debug(f"Обновление меню: смещение={n}, select={select}")
+            self.logger.debug(f"Обновление меню: n={n}, select={select}")
 
-        try:
+        try:                
             self.position += n
-            if self.position < 0:
-                self.position = 0
-            elif self.items and self.position > len(self.items):
-                self.position = len(self.items)
+            if self.can_go_back:
+                if self.position < 0:
+                    self.position = 0
+                elif self.items and self.position > len(self.items):
+                    self.position = len(self.items)
+            else:
+                if self.position < 0:
+                    self.position = 0
+                elif self.items and self.position >= len(self.items):
+                    self.position = len(self.items) - 1 if self.items else 0
+
             if not self.items and not self.can_go_next:
                 self.position = 0
 
-            # Очистка строки кнопок
-            self.contentwin.addstr(self.height - 2, 0, " " * (self.width - 1))
-
-            # Размещение кнопок в нижней строке
-            back_x = 5
+            newy = 5
             if self.can_go_back:
-                mode = curses.color_pair(3) if self.position == 0 and select else curses.color_pair(1) if self.items else 0
-                self.contentwin.addstr(self.height - 2, back_x, '<Назад>', mode)
-
-            if self.can_go_next:
-                next_x = self.width - 5 - len('<Далее>')
-                if next_x > back_x + len('<Назад>') + 2:  # Проверка на пересечение
-                    mode = curses.color_pair(3) if self.position == 1 and select else curses.color_pair(1)
-                    self.contentwin.addstr(self.height - 2, next_x, '<Далее>', mode)
-
-            # Обновление action_panel, если он существует
-            if self.action_panel:
-                self.action_panel.refresh()
+                if self.position == 0:
+                    if select:
+                        self.contentwin.addstr(self.height - 3, 5, '<Назад>', curses.color_pair(3))
+                    elif self.items:
+                        self.contentwin.addstr(self.height - 3, 5, '<Назад>', curses.color_pair(1))
+                    else:
+                        self.contentwin.addstr(self.height - 3, 5, '<Назад>')
+                    newy += len('<Назад>') + self.dist
+                    if self.items:
+                        for item in self.items:
+                            self.contentwin.addstr(self.height - 3, newy, item[0])
+                            newy += len(item[0]) + self.dist
+                else:
+                    self.contentwin.addstr(self.height - 3, 5, '<Назад>')
+                    newy += len('<Назад>') + self.dist
+                    index = 1
+                    for item in self.items:
+                        if index == self.position and select:
+                            self.contentwin.addstr(self.height - 3, newy, item[0], curses.color_pair(3))
+                        else:
+                            self.contentwin.addstr(self.height - 3, newy, item[0], curses.color_pair(1) if self.items else 0)
+                        newy += len(item[0]) + self.dist
+                        index += 1
+                        newy += len(item[0]) + self.dist
+            else:
+                index = 0
+                for item in self.items:
+                    if index == self.position and select:
+                        self.contentwin.addstr(self.height - 3, newy, item[0], curses.color_pair(3))
+                    else:
+                        self.contentwin.addstr(self.height - 3, newy, item[0], curses.color_pair(1) if self.items else 0)
+                    newy += len(item[0]) + self.dist
+                    index += 1
 
             self.contentwin.refresh()
             if self.logger is not None:
-                self.logger.debug(f"Меню обновлено: position={self.position}, back_x={back_x}, next_x={next_x}")
+                self.logger.debug(f"Меню обновлено: position={self.position}")
         except Exception as e:
             if self.logger is not None:
                 self.logger.error(f"Ошибка при обновлении меню: {str(e)}")
@@ -418,12 +462,13 @@ class Window(Action):
             self.logger.debug("Отображение окна")
 
         try:
+            y, x = self.y, self.x
             self.shadowpanel.top()
             self.contentpanel.top()
             self.textpanel.top()
-            self.shadowpanel.move(self.y + 1, self.x + 1)
-            self.contentpanel.move(self.y, self.x)
-            self.textpanel.move(self.y + 2, self.x + 2)
+            self.shadowpanel.move(y + 1, x + 1)
+            self.contentpanel.move(y, x)
+            self.textpanel.move(y + 2, x + 2)
             self.shadowpanel.show()
             self.contentpanel.show()
             self.textpanel.show()
@@ -465,12 +510,11 @@ class Window(Action):
         Аргументы:
         - y (int): Координата Y.
         - x (int): Координата X.
-        - str (str): Добавляемая строка.
+        - str (str): Строка для добавления.
         - mode (int): Режим отображения (цвет).
         """
         if self.logger is not None:
             self.logger.debug(f"Добавление строки: y={y}, x={x}, str={str}, mode={mode}")
-
         try:
             self.textwin.addstr(y, x, str, mode)
             self.textwin.refresh()
@@ -481,20 +525,19 @@ class Window(Action):
 
     def adderror(self, str):
         """
-        Добавление сообщения об ошибке в текстовое окно.
+        Добавление сообщения об ошибке.
 
         Аргументы:
         - str (str): Сообщение об ошибке.
         """
         if self.logger is not None:
-            self.logger.debug(f"Добавление ошибки: {str}")
-
+            self.logger.warning(f"Отображение ошибки: {str}")
         try:
             self.textwin.addstr(self.height - 7, 0, str, curses.color_pair(4))
             self.textwin.refresh()
         except Exception as e:
             if self.logger is not None:
-                self.logger.error(f"Ошибка при добавлении сообщения об ошибке: {str(e)}")
+                self.logger.error(f"Ошибка при отображении ошибки: {str(e)}")
             raise
 
     def clearerror(self):
@@ -503,7 +546,6 @@ class Window(Action):
         """
         if self.logger is not None:
             self.logger.debug("Очистка сообщения об ошибке")
-
         try:
             spaces = ' ' * (self.width - 6)
             self.textwin.addstr(self.height - 7, 0, spaces)
