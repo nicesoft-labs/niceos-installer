@@ -26,8 +26,8 @@ class BtrfsCompressionSelector(object):
         self.maxx = maxx
         self.selected = None
 
-        win_width = 60
-        win_height = 15
+        win_width = 70
+        win_height = 35
         win_starty = (maxy - win_height) // 2
         menu_starty = win_starty + 8
 
