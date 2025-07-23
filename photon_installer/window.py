@@ -317,7 +317,7 @@ class Window(Action):
         return self.textwin
 
     def show_help(self) -> None:
-        """Отобразить окно справки с учетом ограничений терминала."""
+        """Отобразить окно справки с тенью и учетом ограничений терминала."""
         lines = self.help_text.splitlines()
         qr_matrix = None
         qr_height = 0
@@ -372,6 +372,11 @@ class Window(Action):
             title = ' Справка '
             helpwin.addstr(0, (width - len(title)) // 2, title)
 
+            # Создание тени для окна справки
+            help_shadowwin = curses.newwin(height, width, starty + 1, startx + 1)
+            help_shadowpanel = curses.panel.new_panel(help_shadowwin)
+            help_shadowwin.bkgd(' ', curses.color_pair(0))  # Цвет тени
+
             # Добавление текста справки
             for idx, line in enumerate(lines):
                 if idx + 2 < height - 2 - (qr_height if show_qr else 0):
@@ -389,7 +394,11 @@ class Window(Action):
 
             # Добавление кнопки OK
             helpwin.addstr(height - 2, (width - len('<OK>')) // 2, '<OK>', curses.color_pair(3))
+
+            # Отображение панелей (тень внизу, затем окно справки)
+            help_shadowpanel.top()
             helppanel.top()
+            help_shadowpanel.show()
             helppanel.show()
             curses.panel.update_panels()
             curses.doupdate()
@@ -397,14 +406,15 @@ class Window(Action):
             # Ожидание ввода пользователя
             helpwin.getch()
 
-            # Скрытие окна
+            # Скрытие окон
             helppanel.hide()
+            help_shadowpanel.hide()
             curses.panel.update_panels()
             curses.doupdate()
 
         except curses.error as e:
             if self.logger:
-                self.logger.error(f"Ошибка создания окна справки: {e}")
+                self.logger.error(f"Ошибка создания окна справки или тени: {e}")
             self.adderror("Ошибка: Не удалось отобразить окно справки")
         except Exception as e:
             if self.logger:
