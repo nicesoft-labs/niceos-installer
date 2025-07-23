@@ -1,203 +1,86 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-© 2025 ООО "НАЙС СОФТ ГРУПП" (ИНН 5024245440)
-Контакты: <niceos@ncsgp.ru>
-"""
+#/*
+# * Copyright © 2020 VMware, Inc.
+# * SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-only
+# */
+#
+#
+#    Author: Mahmoud Bassiouny <mbassiouny@vmware.com>
 
 import sys
-import logging
 from device import Device
 from window import Window
 from actionresult import ActionResult
 from menu import Menu
 
-
 class SelectDisk(object):
-    def __init__(self, maxy, maxx, install_config, logger=None):
-        """
-        Инициализация селектора диска для установки.
-
-        Аргументы:
-        - maxy (int): Максимальная координата Y экрана.
-        - maxx (int): Максимальная координата X экрана.
-        - install_config (dict): Конфигурация установки.
-        - logger (logging.Logger, optional): Логгер для записи событий.
-        """
-        self.logger = logger
-        if self.logger is not None:
-            self.logger.debug(f"Инициализация SelectDisk: maxy={maxy}, maxx={maxx}, install_config={install_config}")
-
-        # Проверка входных параметров
-        if not isinstance(maxy, int) or not isinstance(maxx, int) or maxy <= 0 or maxx <= 0:
-            if self.logger is not None:
-                self.logger.error(f"Недопустимые размеры экрана: maxy={maxy}, maxx={maxx}")
-            raise ValueError("maxy и maxx должны быть положительными целыми числами")
-        if not isinstance(install_config, dict):
-            if self.logger is not None:
-                self.logger.error(f"Недопустимая конфигурация: {install_config}")
-            raise ValueError("install_config должен быть словарем")
-
+    def __init__(self, maxy, maxx, install_config):
         self.install_config = install_config
         self.menu_items = []
+
         self.maxx = maxx
         self.maxy = maxy
-        self.win_width = min(70, maxx - 6)  # Уменьшаем ширину, чтобы учесть границы
-        self.win_height = min(18, maxy - 6)  # Увеличиваем высоту для текста
+        self.win_width = 70
+        self.win_height = 16
+
         self.win_starty = (self.maxy - self.win_height) // 2
         self.win_startx = (self.maxx - self.win_width) // 2
+
         self.menu_starty = self.win_starty + 6
-        self.menu_height = min(6, self.win_height - 8)  # Ограничиваем высоту меню
-        self.disk_buttom_items = [
-            ('<Ручная>', self.custom_function, False),
-            ('<Автоматическая>', self.auto_function, False)
-        ]
+        self.menu_height = 5
+
+        self.disk_buttom_items = []
+        self.disk_buttom_items.append(('<Custom>', self.custom_function, False))
+        self.disk_buttom_items.append(('<Auto>', self.auto_function, False))
+
+        self.window = Window(self.win_height, self.win_width, self.maxy, self.maxx,
+                             'Select a disk', True,
+                             items=self.disk_buttom_items, menu_helper=self.save_index,
+                             position=2, tab_enabled=False)
         self.devices = None
 
-        try:
-            self.window = Window(
-                self.win_height,
-                self.win_width,
-                self.maxy,
-                self.maxx,
-                'Выберите диск',
-                can_go_back=True,
-                items=self.disk_buttom_items,
-                menu_helper=self.save_index,
-                position=0,  # Начинаем с <Go Back>
-                tab_enabled=True,  # Включаем навигацию по Tab
-                logger=self.logger
-            )
-            if self.logger is not None:
-                self.logger.debug("Окно инициализировано")
-        except Exception as e:
-            if self.logger is not None:
-                self.logger.error(f"Ошибка при создании окна: {str(e)}")
-            raise
-
     def display(self):
-        """
-        Отображение окна выбора диска и метода разметки.
 
-        Возвращает:
-        - ActionResult: Результат действия.
-        """
-        if self.logger is not None:
-            self.logger.debug("Запуск отображения окна выбора диска")
+        self.disk_menu_items = []
 
-        try:
-            self.disk_menu_items = []
-            self.devices = Device.refresh_devices()
-            if self.logger is not None:
-                self.logger.debug(f"Обнаружено устройств: {len(self.devices)}")
+        self.devices = Device.refresh_devices()
 
-            if len(self.devices) == 0:
-                err_win = Window(
-                    self.win_height,
-                    self.win_width,
-                    self.maxy,
-                    self.maxx,
-                    'Ошибка',
-                    can_go_back=False,
-                    position=0,
-                    tab_enabled=False,
-                    logger=self.logger
-                )
-                err_win.addstr(0, 0, 'Не найдено блочных устройств для выбора\n' +
-                                     'Нажмите любую клавишу для перехода в bash.')
-                err_win.show_window()
-                err_win.content_window().getch()
-                if self.logger is not None:
-                    self.logger.error("Не найдено блочных устройств, завершение программы")
-                sys.exit(1)
+        if len(self.devices) == 0:
+            err_win = Window(self.win_height, self.win_width, self.maxy, self.maxx,
+                             'Select a disk', False, position=2, tab_enabled=False)
+            err_win.addstr(0, 0, 'No block devices found to select\n' +
+                           'Press any key to get to bash.')
+            err_win.show_window()
+            err_win.content_window().getch()
+            sys.exit(1)
 
-            # Добавляем текст в окно
-            self.window.addstr(0, 0, 'Выберите диск и метод разметки:\n' +
-                                     'Автоматическая - один раздел для /, без swap.\n' +
-                                     'Ручная - для пользовательской разметки')
+        self.window.addstr(0, 0, 'Please select a disk and a method how to partition it:\n' +
+                           'Auto - single partition for /, no swap partition.\n' +
+                           'Custom - for customized partitioning')
+        # Fill in the menu items
+        for index, device in enumerate(self.devices):
+            #if index > 0:
+            self.disk_menu_items.append(
+                (
+                    '{2} - {1} @ {0}'.format(device.path, device.size, device.model),
+                    self.save_index,
+                    index
+                ))
 
-            # Формируем элементы меню для дисков
-            for index, device in enumerate(self.devices):
-                self.disk_menu_items.append(
-                    (
-                        f'{device.model} - {device.size} @ {device.path}',
-                        lambda idx=index: self.save_index(idx),  # Исправляем передачу индекса
-                        index
-                    ))
+        self.disk_menu = Menu(self.menu_starty, self.maxx, self.disk_menu_items,
+                              self.menu_height, tab_enable=False)
+        self.disk_menu.can_save_sel(True)
 
-            if self.logger is not None:
-                self.logger.debug(f"Создано {len(self.disk_menu_items)} элементов меню")
-
-            # Рассчитываем ширину меню
-            max_item_length = max(len(item[0]) for item in self.disk_menu_items) if self.disk_menu_items else 0
-            menu_width = min(self.win_width - 6, max_item_length + 4)
-
-            # Создаем меню
-            self.disk_menu = Menu(
-                self.menu_starty,
-                menu_width,
-                self.disk_menu_items,
-                self.menu_height,
-                tab_enable=True,  # Включаем навигацию
-                logger=self.logger
-            )
-            self.disk_menu.can_save_sel(True)
-            if self.logger is not None:
-                self.logger.debug(f"Меню создано: ширина={menu_width}, высота={self.menu_height}")
-
-            # Устанавливаем панель действия
-            self.window.set_action_panel(self.disk_menu)
-            result = self.window.do_action()
-            if self.logger is not None:
-                self.logger.info(f"Результат выбора диска: {result}")
-            return result
-        except Exception as e:
-            if self.logger is not None:
-                self.logger.error(f"Ошибка при отображении окна: {str(e)}")
-            return ActionResult(False, {"error": str(e)})
+        self.window.set_action_panel(self.disk_menu)
+        return self.window.do_action()
 
     def save_index(self, device_index):
-        """
-        Сохранение выбранного диска в конфигурацию.
+        self.install_config['disk'] = self.devices[device_index].path
+        return ActionResult(True, None)
 
-        Аргументы:
-        - device_index (int): Индекс выбранного устройства.
-
-        Возвращает:
-        - ActionResult: Результат действия.
-        """
-        if self.logger is not None:
-            self.logger.debug(f"Сохранение индекса устройства: {device_index}")
-        try:
-            self.install_config['disk'] = self.devices[device_index].path
-            if self.logger is not None:
-                self.logger.info(f"Выбран диск: {self.install_config['disk']}")
-            return ActionResult(True, {"diskIndex": device_index})
-        except IndexError:
-            if self.logger is not None:
-                self.logger.error(f"Недопустимый индекс устройства: {device_index}")
-            return ActionResult(False, {"error": f"Недопустимый индекс устройства: {device_index}"})
-
-    def auto_function(self):
-        """
-        Установка автоматической разметки.
-
-        Возвращает:
-        - ActionResult: Результат действия.
-        """
-        if self.logger is not None:
-            self.logger.info("Выбрана автоматическая разметка")
+    def auto_function(self):    #default is no partition
         self.install_config['autopartition'] = True
-        return ActionResult(True, {"goNext": True})
+        return ActionResult(True, None)
 
-    def custom_function(self):
-        """
-        Установка ручной разметки.
-
-        Возвращает:
-        - ActionResult: Результат действия.
-        """
-        if self.logger is not None:
-            self.logger.info("Выбрана ручная разметка")
+    def custom_function(self):  #custom minimize partition number is 1
         self.install_config['autopartition'] = False
-        return ActionResult(True, {"goNext": True})
+        return ActionResult(True, None)
