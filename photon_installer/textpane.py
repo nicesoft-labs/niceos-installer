@@ -1,191 +1,119 @@
-#/*
+# /*
 # * Copyright © 2020 VMware, Inc.
 # * SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-only
 # */
+
+#
 #
 #    Author: Mahmoud Bassiouny <mbassiouny@vmware.com>
-import curses
-import curses.panel
+
+import os
+import logging
+from window import Window
 from actionresult import ActionResult
-from action import Action
-
-class TextPane(Action):
-    def __init__(self, starty, maxx, width, text_file_path, height, menu_items):
-        self.head_position = 0  #This is the start of showing
-        self.menu_position = 0
-        self.lines = []
-        self.menu_items = menu_items
-        self.width = width
-
-        self.read_file(text_file_path, self.width - 3)
-
-        self.num_items = len(self.lines)
-        self.text_height = height - 2
-
-        # Check if we need to add a scroll bar
-        if self.num_items > self.text_height:
-            self.show_scroll = True
-        else:
-            self.show_scroll = False
-
-        # Some calculation to detitmine the size of the scroll filled portion
-        if self.num_items == 0:
-            self.filled = 0
-        else:
-            self.filled = int(round(self.text_height * self.text_height / float(self.num_items)))
-        if self.filled == 0:
-            self.filled += 1
-        for i in [1, 2]:
-            if ((self.num_items - self.text_height) >= i and
-                    (self.text_height - self.filled) == (i - 1)):
-                self.filled -= 1
-
-        self.window = curses.newwin(height, self.width)
-        self.window.bkgd(' ', curses.color_pair(2))
-        self.popupWindow = False
-
-        self.window.keypad(1)
-        self.panel = curses.panel.new_panel(self.window)
-
-        self.panel.move(starty, (maxx - self.width) // 2)
-        self.panel.hide()
-        curses.panel.update_panels()
-
-    def read_file(self, text_file_path, line_width):
-        with open(text_file_path, "rb") as f:
-            for line in f:
-                # expand tab to 8 spaces.
-                try:
-                    line = line.decode(encoding='latin1')
-                except UnicodeDecodeError:
-                    pass
-                line = line.expandtabs()
-                indent = len(line) - len(line.lstrip())
-                actual_line_width = line_width - indent
-                line = line.strip()
-                # Adjust the words on the lines
-                while len(line) > actual_line_width:
-                    sep_index = actual_line_width
-
-                    while sep_index > 0 and line[sep_index-1] != ' ' and line[sep_index] != ' ':
-                        sep_index = sep_index - 1
-
-                    current_line_width = sep_index
-                    if sep_index == 0:
-                        current_line_width = actual_line_width
-                    currLine = line[:current_line_width]
-                    line = line[current_line_width:]
-                    line = line.strip()
-
-                    # Lengthen the line with spaces
-                    self.lines.append(' ' * indent + currLine +
-                                      ' ' *(actual_line_width - len(currLine)))
-
-                # lengthen the line with spaces
-                self.lines.append(' ' * indent + line + ' ' *(actual_line_width - len(line)))
-
-    def navigate(self, n):
-        if self.show_scroll:
-            self.head_position += n
-            if self.head_position < 0:
-                self.head_position = 0
-            elif self.head_position > (len(self.lines) - self.text_height + 1):
-                self.head_position = len(self.lines) - self.text_height + 1
-
-    def navigate_menu(self, n):
-        self.menu_position += n
-        if self.menu_position < 0:
-            self.menu_position = 0
-        elif self.menu_position >= len(self.menu_items):
-            self.menu_position = len(self.menu_items) - 1
+from textpane import TextPane
+from os.path import join, dirname
 
 
-    def render_scroll_bar(self):
-        if self.show_scroll:
-            remaining_above = self.head_position
-            remaining_down = self.num_items - self.text_height - self.head_position#
+class License(object):
+    def __init__(self, maxy, maxx, eula_file_path, display_title, logger=None):
+        """
+        Инициализация окна лицензионного соглашения.
 
-            up = int(round(remaining_above * self.text_height / float(self.num_items)))
-            down = self.text_height - up - self.filled
+        Аргументы:
+        - maxy (int): Максимальная координата Y экрана.
+        - maxx (int): Максимальная координата X экрана.
+        - eula_file_path (str): Путь к файлу лицензионного соглашения.
+        - display_title (str): Заголовок лицензии.
+        - logger (logging.Logger, optional): Логгер для записи событий.
+        """
+        self.logger = logger
+        if self.logger is not None:
+            self.logger.debug(f"Инициализация License: maxy={maxy}, maxx={maxx}, "
+                             f"eula_file_path={eula_file_path}, display_title={display_title}")
 
-            if up == 0 and remaining_above > 0:
-                up += 1
-                down -= 1
-            if down == 0 and remaining_down > 0:
-                up -= 1
-                down += 1
-            if remaining_down == 0 and down != 0:
-                up += down
-                down = 0
+        # Проверка входных параметров
+        if not isinstance(maxy, int) or not isinstance(maxx, int) or maxy <= 0 or maxx <= 0:
+            if self.logger is not None:
+                self.logger.error(f"Недопустимые размеры экрана: maxy={maxy}, maxx={maxx}")
+            raise ValueError("maxy и maxx должны быть положительными целыми числами")
+        if eula_file_path is not None and (not isinstance(eula_file_path, str) or not os.path.isfile(eula_file_path)):
+            if self.logger is not None:
+                self.logger.error(f"Недопустимый или несуществующий файл EULA: {eula_file_path}")
+            raise ValueError("eula_file_path должен быть существующим файлом")
+        if display_title is not None and not isinstance(display_title, str):
+            if self.logger is not None:
+                self.logger.error(f"Недопустимый заголовок: {display_title}")
+            raise ValueError("display_title должен быть строкой")
 
+        self.maxx = maxx
+        self.maxy = maxy
+        self.win_width = min(maxx - 4, 70)  # Ограничение ширины окна
+        self.win_height = min(maxy - 4, 20)  # Ограничение высоты окна
+        self.win_starty = (self.maxy - self.win_height) // 2
+        self.win_startx = (self.maxx - self.win_width) // 2
+        self.text_starty = self.win_starty + 4
+        self.text_height = self.win_height - 6
+        self.text_width = self.win_width - 6
 
-            for index in range(up):
-                self.window.addch(index, self.width - 2, curses.ACS_CKBOARD)
+        try:
+            self.window = Window(self.win_height, self.win_width, self.maxy, self.maxx,
+                                'Добро пожаловать в установщик Photon', False, logger=self.logger)
+            if self.logger is not None:
+                self.logger.debug("Окно инициализировано")
+        except Exception as e:
+            if self.logger is not None:
+                self.logger.error(f"Ошибка при создании окна: {str(e)}")
+            raise
 
-            for index in range(self.filled):
-                self.window.addstr(index + up, self.width - 2, ' ', curses.A_REVERSE)
+        self.eula_file_path = eula_file_path if eula_file_path else join(dirname(__file__), 'EULA.txt')
+        self.title = display_title if display_title else 'ЛИЦЕНЗИОННОЕ СОГЛАШЕНИЕ VMWARE'
 
-            for index in range(down):
-                self.window.addch(index + up + self.filled, self.width - 2, curses.ACS_CKBOARD)
+    def display(self):
+        """
+        Отображение окна лицензионного соглашения.
 
-    def refresh(self):
-        self.window.erase()
-        for index, line in enumerate(self.lines):
-            if index < self.head_position:
-                continue
-            elif index > self.head_position + self.text_height - 1:
-                continue
+        Возвращает:
+        - ActionResult: Результат действия.
+        """
+        if self.logger is not None:
+            self.logger.debug("Запуск отображения окна лицензии")
 
-            x = 0
-            y = index - self.head_position
-            if len(line) > 0:
-                self.window.addstr(y, x, line)
+        try:
+            accept_decline_items = [('<Принять>', self.accept_function),
+                                    ('<Отменить>', self.exit_function)]
+            self.window.addstr(0, (self.win_width - len(self.title)) // 2, self.title)
+            self.text_pane = TextPane(self.text_starty, self.maxx, self.text_width,
+                                      self.eula_file_path, self.text_height, accept_decline_items,
+                                      logger=self.logger)
+            self.window.set_action_panel(self.text_pane)
+            result = self.window.do_action()
+            if self.logger is not None:
+                self.logger.info(f"Результат отображения лицензии: {result}")
+            return result
+        except Exception as e:
+            if self.logger is not None:
+                self.logger.error(f"Ошибка при отображении окна: {str(e)}")
+            return ActionResult(False, {"error": str(e)})
 
-        xpos = self.width
-        for index, item in enumerate(self.menu_items):
-            if index == self.menu_position:
-                mode = curses.color_pair(3)
-            else:
-                mode = curses.color_pair(2)
-            self.window.addstr(self.text_height + 1, xpos - len(item[0]) - 4, item[0], mode)
-            xpos = xpos - len(item[0]) - 4
+    def accept_function(self):
+        """
+        Обработка принятия лицензии.
 
-        self.render_scroll_bar()
+        Возвращает:
+        - ActionResult: Результат действия.
+        """
+        if self.logger is not None:
+            self.logger.info("Лицензия принята")
+        return ActionResult(True, None)
 
-        self.window.refresh()
-        self.panel.top()
-        self.panel.show()
-        curses.panel.update_panels()
-        curses.doupdate()
+    def exit_function(self):
+        """
+        Обработка отмены лицензии.
 
-    def hide(self):
-        self.panel.hide()
-        curses.panel.update_panels()
-        curses.doupdate()
-
-    def do_action(self):
-        while True:
-            self.refresh()
-
-            key = self.window.getch()
-
-            if key in [curses.KEY_ENTER, ord('\n')]:
-                self.hide()
-                return self.menu_items[self.menu_position][1]()
-            if key == curses.KEY_UP:
-                self.navigate(-1)
-            elif key == curses.KEY_DOWN:
-                self.navigate(1)
-
-            elif key == curses.KEY_LEFT:
-                self.navigate_menu(1)
-            elif key == curses.KEY_RIGHT:
-                self.navigate_menu(-1)
-
-            elif key == curses.KEY_NPAGE:
-                self.navigate(self.text_height)
-            elif key == curses.KEY_PPAGE:
-                self.navigate(-self.text_height)
-
-            elif key == curses.KEY_HOME:
-                self.head_position = 0
+        Возвращает:
+        - ActionResult: Результат действия.
+        """
+        if self.logger is not None:
+            self.logger.info("Лицензия отклонена, выход")
+        return ActionResult(False, {"exit": True})
