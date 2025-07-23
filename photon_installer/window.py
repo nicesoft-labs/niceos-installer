@@ -124,6 +124,9 @@ class Window(Action):
                 self.logger.error(f"Ошибка при инициализации окна: {str(e)}")
             raise
 
+        # Hide window after initialization to match previous behavior
+        self.hide_window()
+    
     def update_next_item(self):
         """
         Добавление элемента '<Далее>' в меню.
