@@ -1,7 +1,15 @@
-# /*
-# * Copyright © 2020 VMware, Inc.
-# * SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-only
-# */
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+© 2025 ООО "НАЙС СОФТ ГРУПП" (ИНН 5024245440)
+Контакты: <niceos@ncsgp.ru>
+
+Описание:
+Модуль для выполнения пост-установочных скриптов в системе NiceOS.
+Создает временную директорию, копирует и выполняет указанные скрипты,
+а затем удаляет временные файлы.
+"""
 
 import os
 import commons
@@ -12,46 +20,62 @@ enabled = True
 
 
 def execute(installer):
-    if (
-        'postinstall' not in installer.install_config
-        and 'postinstallscripts' not in installer.install_config
-    ):
-        return
+    """
+    Выполняет пост-установочные скрипты для системы NiceOS.
 
-    tempdir = "/tmp/tempscripts"
-    tempdir_full = installer.photon_root + tempdir
-    scripts = []
-    if not os.path.exists(tempdir_full):
-        os.mkdir(tempdir_full)
+    Args:
+        installer: Объект установщика NiceOS.
 
-    if 'postinstall' in installer.install_config:
-        installer.logger.info("Run postinstall script")
-        # run the script in the chroot environment
-        script = installer.install_config['postinstall']
+    Raises:
+        OSError: Если произошла ошибка при работе с файловой системой.
+        RuntimeError: Если выполнение скриптов завершилось с ошибкой.
+    """
+    try:
+        # Проверка наличия конфигурации для пост-установки
+        if (
+            'postinstall' not in installer.install_config
+            and 'postinstallscripts' not in installer.install_config
+        ):
+            installer.logger.debug("Конфигурация для пост-установки отсутствует, пропуск")
+            return
 
-        script_file = os.path.join(tempdir_full, 'builtin_postinstall.sh')
+        scripts = []
 
-        with open(script_file, 'wb') as outfile:
-            outfile.write("\n".join(script).encode())
-        os.chmod(script_file, 0o700)
-        scripts.append('builtin_postinstall.sh')
+        # Создание временной директории
+        tmpdir = os.path.join("/tmp", "post-install")
+        tmpdir_abs = os.path.join(installer.niceos_root, tmpdir.lstrip("/"))
+        installer.logger.debug(f"Создание временной директории: {tmpdir_abs}")
+        os.makedirs(tmpdir_abs, exist_ok=True)
 
-    if 'postinstallscripts' in installer.install_config:
-        for scriptname in installer.install_config['postinstallscripts']:
-            script_file = installer.getfile(scriptname)
-            shutil.copy(script_file, tempdir_full)
-            scripts.append(os.path.basename(scriptname))
+        # Обработка скрипта postinstall из конфигурации
+        if 'postinstall' in installer.install_config:
+            script_name = "postinstall-tmp.sh"
+            installer.logger.debug(f"Создание скрипта {script_name}")
+            commons.make_script(tmpdir_abs, script_name, installer.install_config['postinstall'])
+            scripts.append(os.path.join(tmpdir, script_name))
+            installer.logger.debug(f"Скрипт {script_name} добавлен в список")
 
-    for script in scripts:
-        if not os.access(os.path.join(tempdir_full, script), os.X_OK):
-            installer.logger.warning(
-                f"Post install script {script} is not executable. "
-                "Skipping execution of script."
-            )
-            continue
-        installer.logger.info("Running script {}".format(script))
-        installer.cmd.run_in_chroot(
-            installer.photon_root, "{}/{}".format(tempdir, script)
-        )
+        # Обработка дополнительных скриптов из postinstallscripts
+        for script in installer.install_config.get('postinstallscripts', []):
+            script_file = installer.getfile(script)
+            installer.logger.debug(f"Копирование скрипта {script_file} в {tmpdir_abs}")
+            shutil.copy(script_file, tmpdir_abs)
+            scripts.append(os.path.join(tmpdir, os.path.basename(script_file)))
+            installer.logger.debug(f"Скрипт {os.path.basename(script_file)} добавлен в список")
 
-    shutil.rmtree(tempdir_full, ignore_errors=True)
+        # Выполнение скриптов
+        installer.logger.info("Выполнение пост-установочных скриптов")
+        commons.execute_scripts(installer, scripts, chroot=installer.niceos_root)
+        installer.logger.info("Пост-установочные скрипты успешно выполнены")
+
+        # Удаление временной директории
+        installer.logger.debug(f"Удаление временной директории: {tmpdir_abs}")
+        shutil.rmtree(tmpdir_abs, ignore_errors=True)
+        installer.logger.debug("Временная директория удалена")
+
+    except OSError as e:
+        installer.logger.error(f"Ошибка при работе с файловой системой: {str(e)}")
+        raise OSError(f"Не удалось выполнить операции с файлами: {str(e)}") from e
+    except RuntimeError as e:
+        installer.logger.error(f"Ошибка выполнения скриптов: {str(e)}")
+        raise RuntimeError(f"Ошибка выполнения пост-установочных скриптов: {str(e)}") from e
