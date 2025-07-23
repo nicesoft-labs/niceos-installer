@@ -35,9 +35,9 @@ class NetworkConfigure:
     HELP_TEXTS = {
         NET_CONFIG_OPTION_DHCP: (
             "Автоматическая настройка сети (DHCP)\n\n"
-            "Эта опция позволяет автоматически получить IP-адрес, маску подсети, шлюз и DNS\n"
-            "от DHCP-сервера. Подходит для большинства сетей с активным DHCP-сервером.\n\n"
-            "Пример: IP-адрес будет назначен автоматически, например, 192.168.1.100.\n\n"
+            "Автоматически получает IP-адрес, маску подсети, шлюз и DNS от DHCP-сервера.\n"
+            "Рекомендуется для сетей с активным DHCP-сервером.\n\n"
+            "Пример: IP-адрес, например, 192.168.1.100, назначается автоматически.\n\n"
             "Нажмите <Enter> для подтверждения или <F1> для возврата к меню."
         ),
         NET_CONFIG_OPTION_DHCP_HOSTNAME: (
@@ -53,17 +53,17 @@ class NetworkConfigure:
         ),
         NET_CONFIG_OPTION_MANUAL: (
             "Ручная настройка сети\n\n"
-            "Укажите вручную сетевые параметры:\n"
+            "Укажите вручную:\n"
             "  - IP-адрес (например, 192.168.1.100 или 192.168.1.100/24);\n"
             "  - Маска подсети (например, 255.255.255.0);\n"
             "  - Шлюз (например, 192.168.1.1);\n"
             "  - Сервер имен (DNS, например, 8.8.8.8).\n\n"
-            "Все адреса должны быть в формате xxx.xxx.xxx.xxx, числа от 0 до 255.\n"
+            "Адреса должны быть в формате xxx.xxx.xxx.xxx, числа от 0 до 255.\n"
             "Нажмите <Enter> для ввода параметров или <F1> для возврата."
         ),
         NET_CONFIG_OPTION_VLAN: (
             "Настройка сети с использованием VLAN\n\n"
-            "Настройка виртуальной локальной сети (VLAN) с указанием идентификатора VLAN.\n"
+            "Настройка виртуальной локальной сети (VLAN) с указанием идентификатора.\n"
             "Требования к идентификатору VLAN:\n"
             "  - Число от 1 до 4094.\n\n"
             "Пример: 100\n\n"
@@ -82,6 +82,8 @@ class NetworkConfigure:
         "Идентификатор VLAN (1-4094): "
     )
 
+    DEFAULT_INTERFACE = 'eth0'
+
     def __init__(self, maxy: int, maxx: int, install_config: Dict, logger=None):
         """
         Инициализация класса для настройки сетевых параметров.
@@ -93,19 +95,19 @@ class NetworkConfigure:
             logger: Объект логгера для записи сообщений об ошибках и событиях.
 
         Raises:
-            RuntimeError: Если нет доступных сетевых интерфейсов или терминал слишком мал.
+            RuntimeError: Если терминал слишком мал.
         """
         self.logger = logger
         self.maxx = maxx
         self.maxy = maxy
-        self.win_width = min(80, maxx - 4)  # Ограничение ширины окна
-        self.win_height = min(13, maxy - 4)  # Ограничение высоты окна
+        self.win_width = min(80, maxx - 4)
+        self.win_height = min(13, maxy - 4)
         self.win_starty = (maxy - self.win_height) // 2
         self.win_startx = (maxx - self.win_width) // 2
         self.menu_starty = self.win_starty + 3
         self.package_menu_items = []
         self.install_config = install_config
-        self.install_config['network'] = {'version': '2'}  # Инициализация с версией 2
+        self.install_config['network'] = {'version': '2'}
         self.network_manager = NetworkManager(config=self.install_config['network'], logger=logger)
 
         # Проверка размеров терминала
@@ -113,12 +115,6 @@ class NetworkConfigure:
             if self.logger:
                 self.logger.error(f"Терминал слишком мал: maxx={maxx}, maxy={maxy}")
             raise RuntimeError("Терминал слишком мал для отображения интерфейса")
-
-        # Проверка доступности сетевых интерфейсов
-        if not self._check_network_interfaces():
-            if self.logger:
-                self.logger.error("Нет доступных сетевых интерфейсов")
-            raise RuntimeError("Нет доступных сетевых интерфейсов")
 
         # Создание элементов меню
         for opt in self.NET_CONFIG_OPTION_STRINGS:
@@ -149,19 +145,22 @@ class NetworkConfigure:
         Проверка наличия доступных сетевых интерфейсов.
 
         Returns:
-            bool: True, если есть хотя бы один интерфейс, иначе False.
+            bool: True, если интерфейсы есть или используется fallback, иначе False.
         """
         try:
             interfaces = self.network_manager.get_interfaces()
             if not interfaces:
                 if self.logger:
-                    self.logger.error("Не найдены сетевые интерфейсы")
-                return False
+                    self.logger.warning(f"Нет доступных сетевых интерфейсов, используется интерфейс по умолчанию: {self.DEFAULT_INTERFACE}")
+                return True  # Allow fallback to DEFAULT_INTERFACE
+            if self.logger:
+                self.logger.info(f"Найдены сетевые интерфейсы: {interfaces}")
             return True
         except Exception as e:
             if self.logger:
                 self.logger.error(f"Ошибка при проверке сетевых интерфейсов: {e}")
-            return False
+            self.window.adderror(f"Ошибка: Не удалось проверить сетевые интерфейсы: {e}")
+            return True  # Allow fallback to avoid blocking installation
 
     @staticmethod
     def validate_hostname(hostname: Optional[str]) -> Tuple[bool, Optional[str]]:
@@ -222,7 +221,7 @@ class NetworkConfigure:
 
         if cidr is not None:
             try:
-                if not (0 < int(cidr) <= 32):  # CIDR до 32 включительно
+                if not (0 < int(cidr) <= 32):
                     return False, "Недействительный номер CIDR; должен быть в диапазоне (1-32)"
             except ValueError:
                 return False, "Недействительный номер CIDR; ожидается число"
@@ -244,7 +243,7 @@ class NetworkConfigure:
 
         for i, val in enumerate(vals):
             field_name = ['IP-адрес', 'Маска подсети', 'Шлюз', 'Сервер имен'][i]
-            res, msg = self.validate_ipaddr(val, can_have_cidr=(i == 0))  # CIDR только для IP
+            res, msg = self.validate_ipaddr(val, can_have_cidr=(i == 0))
             if not res:
                 return False, f"Ошибка в поле '{field_name}': {msg}"
         return True, None
@@ -277,15 +276,19 @@ class NetworkConfigure:
         Получение имени сетевого интерфейса по умолчанию.
 
         Returns:
-            str: Имя интерфейса или 'eth0' по умолчанию.
+            str: Имя интерфейса или DEFAULT_INTERFACE.
         """
         try:
             interfaces = self.network_manager.get_interfaces()
-            return interfaces[0] if interfaces else 'eth0'
+            interface = interfaces[0] if interfaces else self.DEFAULT_INTERFACE
+            if self.logger:
+                self.logger.info(f"Выбран сетевой интерфейс: {interface}")
+            return interface
         except Exception as e:
             if self.logger:
                 self.logger.error(f"Ошибка при получении сетевого интерфейса: {e}")
-            return 'eth0'  # Fallback
+            self.window.adderror(f"Ошибка: Не удалось получить сетевой интерфейс, используется {self.DEFAULT_INTERFACE}")
+            return self.DEFAULT_INTERFACE
 
     def _exit_function(self, selected_item_params: List[str]) -> ActionResult:
         """
@@ -299,7 +302,7 @@ class NetworkConfigure:
         """
         try:
             selection = self.NET_CONFIG_OPTION_STRINGS.index(selected_item_params[0])
-            self.window.help_text = self.HELP_TEXTS[selection]  # Обновление справки
+            self.window.help_text = self.HELP_TEXTS[selection]
             network_config = {'version': '2'}
             interface = self._get_default_interface()
 
@@ -417,7 +420,6 @@ class NetworkConfigure:
                 if self.logger:
                     self.logger.info(f"VLAN ID установлен: {vlan_id}")
 
-            # Применение конфигурации через NetworkManager
             try:
                 self.network_manager.setup_network()
                 if self.logger:
@@ -444,6 +446,8 @@ class NetworkConfigure:
             ActionResult: Результат действия (успех или ошибка).
         """
         try:
+            if not self._check_network_interfaces():
+                return ActionResult(False, {'custom': False})
             result = self.window.do_action()
             if not result.success:
                 if self.logger:
@@ -453,8 +457,8 @@ class NetworkConfigure:
         except KeyboardInterrupt:
             if self.logger:
                 self.logger.info("Прерывание пользователем в окне настройки сети")
-            self.window.cleanup()  # Очистка терминала
-            raise  # Пропустить прерывание наверх для обработки в IsoInstaller
+            self.window.cleanup()
+            raise
         except Exception as e:
             if self.logger:
                 self.logger.error(f"Ошибка при отображении окна настройки сети: {e}")
