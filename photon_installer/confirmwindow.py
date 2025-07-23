@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+© 2025 ООО "НАЙС СОФТ ГРУПП" (ИНН 5024245440)
+Контакты: <niceos@ncsgp.ru>
+"""
+
 import curses
 import logging
 from window import Window
@@ -39,7 +47,7 @@ class ConfirmWindow(Window):
                 if self.logger is not None:
                     self.logger.debug("Создание меню с единственной опцией 'OK'")
             else:
-                items = [('Yes', self.exit_function, True), ('No', self.exit_function, False)]
+                items = [('Да', self.exit_function, True), ('Нет', self.exit_function, False)]
                 if self.logger is not None:
                     self.logger.debug("Создание меню с опциями 'Yes' и 'No'")
 
