@@ -10,6 +10,8 @@ from confirmwindow import ConfirmWindow
 from actionresult import ActionResult
 from device import Device
 from installer import BIOSSIZE,ESPSIZE
+from filesystemselector import FilesystemSelector
+
 
 class CustomPartition(object):
     def __init__(self, maxy, maxx, install_config, logger=None):
@@ -147,29 +149,65 @@ class CustomPartition(object):
         self.window.hide_window()
 
         self.cp_config['partition_disk'] = self.devices[self.device_index].path
-        self.partition_items = []
-        self.partition_items.append(('Size in MB: ' +
-                                     str(self.disk_size[self.device_index][1]) +
-                                     ' available'))
-        self.partition_items.append(('Type: (ext3, ext4, xfs, btrfs, swap)'))
-        self.partition_items.append(('Mountpoint:'))
-        self.create_window = ReadMulText(
+        tmp_config = {}
+        partition_idx = str(self.cp_config['partitionsnumber'])
+
+        input_items = [
+            ('Size in MB: ' + str(self.disk_size[self.device_index][1]) + ' available'),
+            ('Mountpoint:')
+        ]
+
+        create_win = ReadMulText(
             self.maxy, self.maxx, 0,
-            self.cp_config,
-            str(self.cp_config['partitionsnumber']) + 'partition_info',
-            self.partition_items,
+            tmp_config,
+            'partition_tmp',
+            input_items,
             None,
             None,
             None,
-            self.validate_partition,   #validation function of the input
+            None,
             None,
             True,
             )
-        result = self.create_window.do_action()
-        if result.success:
-            self.cp_config['partitionsnumber'] = self.cp_config['partitionsnumber'] + 1
+        result = create_win.do_action()
+        if not result.success:
+            return self.display()
 
-        #parse the input in install config
+        size = tmp_config.get('partition_tmp0', '')
+        mountpoint = tmp_config.get('partition_tmp1', '')
+
+        fs_selector = FilesystemSelector(self.maxy, self.maxx)
+        fs_result = fs_selector.display()
+        if not fs_result.success:
+            return self.display()
+
+        fstype = fs_selector.selected_fs
+
+        fs_options = None
+        if fstype == 'btrfs':
+            from btrfscompressionselector import BtrfsCompressionSelector
+            comp_sel = BtrfsCompressionSelector(self.maxy, self.maxx)
+            comp_res = comp_sel.display()
+            if not comp_res.success:
+                return self.display()
+            fs_options = f"compress={comp_sel.selected}"
+
+        valid, err = self.validate_partition([size, fstype, mountpoint])
+        if not valid:
+            window_height = 9
+            window_width = 50
+            window_starty = (self.maxy - window_height) // 2 + 5
+            confirm_window = ConfirmWindow(window_height, window_width, self.maxy,
+                                           self.maxx, window_starty, err, info=True)
+            confirm_window.do_action()
+            return self.display()
+
+        self.cp_config[partition_idx + 'partition_info0'] = size
+        self.cp_config[partition_idx + 'partition_info1'] = fstype
+        self.cp_config[partition_idx + 'partition_info2'] = mountpoint
+        if fs_options:
+            self.cp_config[partition_idx + 'fs_options'] = fs_options
+        self.cp_config['partitionsnumber'] = self.cp_config['partitionsnumber'] + 1
         return self.display()
 
     def delete_function(self):
@@ -216,9 +254,13 @@ class CustomPartition(object):
             mtdata = self.cp_config[str(i) + 'partition_info' + str(2)]
             typedata = self.cp_config[str(i) + 'partition_info'+str(1)]
 
-            partitions = partitions + [{"mountpoint": mtdata,
-                                        "size": sizedata,
-                                        "filesystem": typedata},]
+            fs_opts = self.cp_config.get(str(i) + 'fs_options')
+            part = {"mountpoint": mtdata,
+                    "size": sizedata,
+                    "filesystem": typedata}
+            if fs_opts:
+                part['fs_options'] = fs_opts
+            partitions = partitions + [part]
         self.install_config['partitions'] = partitions
 
         return ActionResult(True, {'goNext':True})
@@ -229,6 +271,8 @@ class CustomPartition(object):
             self.cp_config[str(i)+'partition_info'+str(1)] = ''
             self.cp_config[str(i)+'partition_info'+str(2)] = ''
             self.cp_config[str(i)+'partition_info'+str(3)] = ''
+            if str(i)+'fs_options' in self.cp_config:
+                del self.cp_config[str(i)+'fs_options']
         del self.disk_size[:]
         for index, device in enumerate(self.devices):
             self.disk_size.append((device.path, int(device.size) / 1048576 - (BIOSSIZE + ESPSIZE + 2)))
