@@ -109,7 +109,7 @@ class NetworkConfigure:
         self.package_menu_items = []
         self.install_config = install_config
         self.install_config['network'] = {'version': '2'}
-        self.network_manager = NetworkManager(config=self.install_config['network'], logger=logger)
+        self.network_manager = NetworkManager(config=self.install_config['network'])
 
         # Проверка размеров терминала
         if self.win_width < 40 or self.win_height < 7:
