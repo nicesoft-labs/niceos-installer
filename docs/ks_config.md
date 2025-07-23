@@ -24,6 +24,29 @@ The kickstart config file is a json format file with the following possible para
 ### _"additional_rpms_path":_ (optional)
 - Provide a path containing additional RPMS that are to be bundled into the image.
 
+### _"ansible":_ (optional)
+- Run ansible playbooks inside the target system after packages are installed.
+- Value is a list of dictionaries containing at least a _"playbook"_ key.
+- Optional keys:
+  - _"verbosity"_ – integer specifying ansible verbosity (`-v`, `-vv`, ...)
+  - _"logfile"_ – file to save command output, copied to `/var/log` on the target
+  - _"extra-vars"_ – passed through to ansible via `--extra-vars`
+  - _"tags"_ and _"skip-tags"_ – tags to run or skip
+
+  Example:
+  ```json
+  {
+    "ansible": [
+      { "playbook": "/usr/share/ansible/setup.yml" },
+      {
+        "playbook": "/usr/share/ansible/harden.yml",
+        "logfile": "ansible-harden.log",
+        "verbosity": 2,
+        "extra-vars": "@/tmp/vars.yml"
+      }
+    ]
+  }
+  ```
 
 ### _"arch":_ (optional)
 - Target system architecture. Should be set if target architecture is
