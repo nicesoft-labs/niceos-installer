@@ -12,7 +12,7 @@ from textpane import TextPane
 from os.path import join, dirname
 
 class License(object):
-    def __init__(self, maxy, maxx, eula_file_path, display_title):
+    def __init__(self, maxy, maxx, eula_file_path, display_title, logger=None):
         """
         Инициализация окна лицензионного соглашения.
 
