@@ -25,13 +25,13 @@ class IsoInstaller(object):
     def __init__(self, options, params={}):
         install_config = None
         self.media_mount_path = None
-        photon_media = None
+        niceos_media = None
         ks_path = options.install_config_file
         self.params = params
         # Comma separated paths to RPMS repository: local media or remote URL
         # If --repo-paths= provided - use it,
         # if not provided - use kernel repos= parameter,
-        # if not provided - use /RPMS path from photon_media,
+        # if not provided - use /RPMS path from niceos_media,
         # exit otherwise.
         repo_paths = options.repo_paths
         insecure_installation = Defaults.INSECURE_INSTALLATION
@@ -54,15 +54,15 @@ class IsoInstaller(object):
                 print("WARNING: 'repo=url1,url2' will get deprecated soon, please use 'repos=url1,url2' key instead")
                 if not repo_paths:
                     repo_paths = arg[len("repo="):]
-            elif arg.startswith("photon.media="):
-                photon_media = arg[len("photon.media="):]
+            elif arg.startswith("niceos.media="):
+                niceos_media = arg[len("niceos.media="):]
             elif arg.startswith("insecure_installation="):
                 insecure_installation = bool(int(arg[len("insecure_installation="):]))
-            elif arg.startswith("photon.media.mount_retry="):
-                self.retry_mount_media = int(arg[len("photon.media.mount_retry="):])
+            elif arg.startswith("niceos.media.mount_retry="):
+                self.retry_mount_media = int(arg[len("niceos.media.mount_retry="):])
 
-        if photon_media:
-            self.media_mount_path = self.mount_media(photon_media)
+        if niceos_media:
+            self.media_mount_path = self.mount_media(niceos_media)
 
         if not repo_paths:
             if self.media_mount_path:
@@ -100,7 +100,7 @@ class IsoInstaller(object):
         try:
             # Run installer
             installer = Installer(repo_paths=repo_paths, log_path="/var/log",
-                                photon_release_version=options.photon_release_version)
+                                niceos_release_version=options.niceos_release_version)
 
             installer.configure(install_config, ui_config)
             installer.execute()
@@ -178,7 +178,7 @@ class IsoInstaller(object):
         except OSError as e:
             print(f"Failed to run vmtoolsd, do you have open-vm-tools installed? Error: {e}")
 
-    def mount_media(self, photon_media, mount_path=Defaults.MOUNT_PATH):
+    def mount_media(self, niceos_media, mount_path=Defaults.MOUNT_PATH):
         """Mount the external media"""
 
         # Make the mounted directories
@@ -186,11 +186,11 @@ class IsoInstaller(object):
 
         # Construct mount cmdline
         cmdline = ['mount']
-        if photon_media.startswith("UUID="):
-            cmdline.extend(['-U', photon_media[len("UUID="):] ])
-        elif photon_media.startswith("LABEL="):
-            cmdline.extend(['-L', photon_media[len("LABEL="):] ])
-        elif photon_media == "cdrom":
+        if niceos_media.startswith("UUID="):
+            cmdline.extend(['-U', niceos_media[len("UUID="):] ])
+        elif niceos_media.startswith("LABEL="):
+            cmdline.extend(['-L', niceos_media[len("LABEL="):] ])
+        elif niceos_media == "cdrom":
             # Check if cdrom is listed in block devices.
             if not Device.check_cdrom():
                 raise Exception("Cannot proceed with the installation because the installation medium "
@@ -199,7 +199,7 @@ class IsoInstaller(object):
             cmdline.append('/dev/cdrom')
         else:
             #User specified mount path
-            cmdline.append(photon_media)
+            cmdline.append(niceos_media)
 
         cmdline.extend(['-o', 'ro', mount_path])
 
@@ -214,7 +214,7 @@ class IsoInstaller(object):
             time.sleep(5)
         print("Failed to mount the device, exiting the installer")
         print("check the logs for more details")
-        raise Exception(f"Cannot mount the device {str(photon_media)}")
+        raise Exception(f"Cannot mount the device {str(niceos_media)}")
 
 
 if __name__ == '__main__':
