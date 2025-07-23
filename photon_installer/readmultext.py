@@ -138,9 +138,15 @@ class ReadMulText(Action):
                         conf_message_height = 8
                         conf_message_width = 48
                         conf_message_button_y = (self.maxy - conf_message_height) // 2 + 5
-                        confrim_window = ConfirmWindow(conf_message_height, conf_message_width,
-                                                       self.maxy, self.maxx, conf_message_button_y,
-                                                       self.confirmation_error_msg, True)
+                        confrim_window = ConfirmWindow(
+                            conf_message_height,
+                            conf_message_width,
+                            self.maxy,
+                            self.maxx,
+                            conf_message_button_y,
+                            self.confirmation_error_msg,
+                            info=True,
+                        )
                         confrim_window.do_action()
                         self.hide()
                         return ActionResult(False, {'goBack': True})
