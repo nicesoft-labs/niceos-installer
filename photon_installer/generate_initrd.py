@@ -93,13 +93,13 @@ class IsoInitrd:
 
         self.cmd_util = CommandUtils(self.logger)
         self.initrd_path = os.path.join(self.working_dir, "niceos-chroot")
-        self.license_text = f"NiceSOFT {self.niceos_release_version} LICENSE AGREEMENT"
+        self.license_text = f"NiceSOFT {self.niceos_release_version} ЛИЦЕНЗИОННОЕ СОГЛАШЕНИЕ"
         
         try:
             if CommandUtils.exists_in_file(
                 "BETA LICENSE AGREEMENT", os.path.join(self.working_dir, "EULA.txt"), logger=self.logger
             ):
-                self.license_text = f"NiceSOFT {self.niceos_release_version} BETA LICENSE AGREEMENT"
+                self.license_text = f"NiceSOFT {self.niceos_release_version} BETA ЛИЦЕНЗИОННОЕ СОГЛАШЕНИЕ"
                 if self.logger is not None:
                     self.logger.debug(f"Обнаружен BETA LICENSE, текст лицензии: {self.license_text}")
         except Exception as e:
@@ -228,7 +228,7 @@ try_run_installer || exec /bin/bash
         if self.logger is not None:
             self.logger.debug("Запуск очистки ненужных файлов")
 
-        exclusions = ["terminfo", "cracklib", "grub", "factory", "dbus-1", "ansible"]
+        exclusions = ["terminfo", "cracklib", "grub", "factory", "dbus-1", "ansible", "consolefonts", "consoletrans", "keymaps", "unimaps"]
         dir_to_list = ["usr/share", "usr/sbin"]
         listed_contents = []
         files_to_remove = [
@@ -308,7 +308,11 @@ try_run_installer || exec /bin/bash
         if self.logger is not None:
             self.logger.debug(f"Установка пакетов initrd: {self.initrd_pkgs}")
 
-        tdnf_args = ["install"] + self.initrd_pkgs
+        if isinstance(self.initrd_pkgs, str):
+            tdnf_args = ["--rpmverbosity", "10", "install"] + self.initrd_pkgs.split()
+        else:
+            tdnf_args = ["--rpmverbosity", "10", "install"] + self.initrd_pkgs
+
         mount_dirs = []
         if self.ostree_iso:
             self.tdnf.config_file = None
