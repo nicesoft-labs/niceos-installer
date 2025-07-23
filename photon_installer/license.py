@@ -10,7 +10,9 @@
 from window import Window
 from actionresult import ActionResult
 from textpane import TextPane
+import os
 from os.path import join, dirname
+
 
 class License(object):
     def __init__(self, maxy, maxx, eula_file_path, display_title, logger=None):
