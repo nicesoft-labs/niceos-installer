@@ -101,6 +101,7 @@ class Installer(object):
         'type',
         'ui',
         'user_grub_cfg_file',
+        'timezone',
     }
 
     default_partitions = [{"mountpoint": "/", "size": 0, "filesystem": "ext4"}]
@@ -430,6 +431,10 @@ class Installer(object):
         if "hostname" not in install_config or install_config['hostname'] == "":
             install_config['hostname'] = 'photon-%12x' % secrets.randbelow(16**12)
 
+        # default timezone
+        if 'timezone' not in install_config:
+            install_config['timezone'] = 'Europe/Moscow'
+        
         # Set password if needed.
         # Installer uses 'shadow_password' and optionally 'password'/'age'
         # to set aging if present. See modules/m_updaterootpassword.py
@@ -616,6 +621,11 @@ class Installer(object):
                 elif method == "load":
                     if 'filename' not in image:
                         return "no 'filename' set for docker image with 'load' method"
+
+        if 'timezone' in install_config:
+            tz_path = os.path.join('/usr/share/zoneinfo', install_config['timezone'])
+            if not os.path.exists(tz_path):
+                return f"invalid timezone '{install_config['timezone']}'"
 
         return None
 
