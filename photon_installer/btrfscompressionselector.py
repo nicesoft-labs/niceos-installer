@@ -26,10 +26,19 @@ class BtrfsCompressionSelector(object):
         self.maxx = maxx
         self.selected = None
 
-        win_width = 60
-        win_height = 15
+        lines = [
+            "\u0420\u0435\u0436\u0438\u043c \u0441\u0436\u0430\u0442\u0438\u044f (Compression)",
+            "\u041f\u043e\u0437\u0432\u043e\u043b\u044f\u0435\u0442 \u0432\u043a\u043b\u044e\u0447\u0438\u0442\u044c \u0441\u0436\u0430\u0442\u0438\u0435 \u0434\u0430\u043d\u043d\u044b\u0445 \u043d\u0430 \u0443\u0440\u043e\u0432\u043d\u0435 \u0444\u0430\u0439\u043b\u043e\u0432\u043e\u0439 \u0441\u0438\u0441\u0442\u0435\u043c\u044b."
+        ] + [desc for _n, desc in self.MODES]
+
+        max_len = max(len(l) for l in lines)
+        win_width = min(max_len + 4, maxx - 2)
+
+        text_height = len(lines)
+        win_height = min(text_height + 7, maxy - 2)
+        
         win_starty = (maxy - win_height) // 2
-        menu_starty = win_starty + 8
+        menu_starty = win_starty + text_height + 2
 
         menu_items = [
             (m[0], self._set_mode, m[0]) for m in self.MODES
@@ -41,12 +50,14 @@ class BtrfsCompressionSelector(object):
                              "\u0420\u0435\u0436\u0438\u043c \u0441\u0436\u0430\u0442\u0438\u044f", True,
                              self.menu, can_go_next=True)
 
-        self.window.addstr(0, 0,
-            "\u0420\u0435\u0436\u0438\u043c \u0441\u0436\u0430\u0442\u0438\u044f (Compression)")
-        self.window.addstr(2, 0,
-            "\u041f\u043e\u0437\u0432\u043e\u043b\u044f\u0435\u0442 \u0432\u043a\u043b\u044e\u0447\u0438\u0442\u044c \u0441\u0436\u0430\u0442\u0438\u0435 \u0434\u0430\u043d\u043d\u044b\u0445 \u043d\u0430 \u0443\u0440\u043e\u0432\u043d\u0435 \u0444\u0430\u0439\u043b\u043e\u0432\u043e\u0439 \u0441\u0438\u0441\u0442\u0435\u043c\u044b.")
-        for idx, (_name, desc) in enumerate(self.MODES, start=4):
-            self.window.addstr(idx, 0, desc)
+        y = 0
+        self.window.addstr(y, 0, lines[0])
+        y += 2
+        self.window.addstr(y, 0, lines[1])
+        y += 2
+        for desc in lines[2:]:
+            self.window.addstr(y, 0, desc)
+            y += 1
 
     def _set_mode(self, mode):
         self.selected = mode
