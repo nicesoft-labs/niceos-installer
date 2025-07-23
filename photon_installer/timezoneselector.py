@@ -21,6 +21,10 @@ class TimezoneSelector(object):
 
         self.win_starty = (self.maxy - self.win_height) // 2
         self.menu_starty = self.win_starty + 3
+        # number of rows for the time zone menu. Limit the height so that
+        # the menu panel always fits on screen even when there are many
+        # time zones available.
+        self.menu_height = self.win_height - 4
 
         self._load_timezones()
         self._selected_group = None
@@ -68,6 +72,7 @@ class TimezoneSelector(object):
         if self.default_zone in self.ru_zones:
             default_selected = self.ru_zones.index(self.default_zone)
         self.menu = Menu(self.menu_starty, self.maxx, menu_items,
+                         self.menu_height,
                          default_selected=default_selected, tab_enable=False)
         self.window = Window(self.win_height, self.win_width, self.maxy, self.maxx,
                              "Select Timezone", True, self.menu,
@@ -90,6 +95,7 @@ class TimezoneSelector(object):
         groups = sorted(self.grouped_zones.keys())
         group_items = [(g, self._select_group, g) for g in groups]
         group_menu = Menu(self.menu_starty, self.maxx, group_items,
+                          self.menu_height,
                           default_selected=0, tab_enable=False)
         group_window = Window(self.win_height, self.win_width, self.maxy, self.maxx,
                               "Select Region", True, group_menu,
@@ -100,6 +106,7 @@ class TimezoneSelector(object):
         zones = self.grouped_zones[self._selected_group]
         zone_items = [(z, self._select_zone, z) for z in zones]
         zone_menu = Menu(self.menu_starty, self.maxx, zone_items,
+                         self.menu_height,
                          default_selected=0, tab_enable=False)
         zone_window = Window(self.win_height, self.win_width, self.maxy, self.maxx,
                              "Select Timezone", True, zone_menu,
