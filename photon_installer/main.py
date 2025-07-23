@@ -13,18 +13,74 @@ import yaml
 def main():
     usage = "Usage: %prog [options]"
     parser = ArgumentParser(usage)
-    parser.add_argument("-i", "--image-type", dest="image_type")
-    parser.add_argument("-c", "--install-config", dest="install_config_file")
-    parser.add_argument("-u", "--ui-config", dest="ui_config_file")
+    parser.add_argument(
+        "-i",
+        "--image-type",
+        dest="image_type",
+        help="Тип создаваемого образа (iso, ova, ami и т. д.)",
+    )
+    parser.add_argument(
+        "-c",
+        "--install-config",
+        dest="install_config_file",
+        help="Путь к файлу конфигурации установки (kickstart)",
+    )
+    parser.add_argument(
+        "-u",
+        "--ui-config",
+        dest="ui_config_file",
+        help="Путь к файлу конфигурации интерфейса",
+    )
     # comma separated paths to rpms
-    parser.add_argument("-r", "--repo-paths", dest="repo_paths", default=None)
-    parser.add_argument("-o", "--options-file", dest="options_file")
-    parser.add_argument("-w", "--working-directory", dest="working_directory")
-    parser.add_argument("-l", "--log-path", dest="log_path", default="/var/log")
+    parser.add_argument(
+        "-r",
+        "--repo-paths",
+        dest="repo_paths",
+        default=None,
+        help="Список путей к локальным репозиториям RPM (через запятую)",
+    )
+    parser.add_argument(
+        "-o",
+        "--options-file",
+        dest="options_file",
+        help="Файл с дополнительными параметрами установки",
+    )
+    parser.add_argument(
+        "-w",
+        "--working-directory",
+        dest="working_directory",
+        help="Рабочая директория для временных файлов",
+    )
+    parser.add_argument(
+        "-l",
+        "--log-path",
+        dest="log_path",
+        default="/var/log",
+        help="Каталог для размещения логов установки",
+    )
     # EULA file now shipped with installer; do not allow overriding
-    parser.add_argument("-t", "--license-title", dest="license_display_title", default=None)
-    parser.add_argument("-v", "--photon-release-version", dest="photon_release_version", required=True)
-    parser.add_argument("-p", "--param", dest='params', action='append', default=[])
+    parser.add_argument(
+        "-t",
+        "--license-title",
+        dest="license_display_title",
+        default=None,
+        help="Заголовок окна лицензионного соглашения",
+    )
+    parser.add_argument(
+        "-v",
+        "--photon-release-version",
+        dest="photon_release_version",
+        required=True,
+        help="Версия Photon OS (например, 5.0)",
+    )
+    parser.add_argument(
+        "-p",
+        "--param",
+        dest="params",
+        action="append",
+        default=[],
+        help="Дополнительный параметр в формате ключ=значение. Может повторяться",
+    )
 
     options = parser.parse_args()
 
