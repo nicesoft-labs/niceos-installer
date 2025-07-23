@@ -68,8 +68,27 @@ class FilesystemSelector(object):
                 self.logger.debug(f"Меню инициализировано: menu_starty={menu_starty}, maxx={maxx}")
 
             # Инициализация окна
-            self.window = Window(win_height, win_width, maxy, maxx, "Выбор файловой системы", True, self.menu,
-                                 can_go_next=True)
+            FILESYSTEM_HELP_TEXT = (
+                "Выберите файловую систему для нового раздела:\n\n"
+                "ext4  — Надёжная и проверенная система. Рекомендуется по умолчанию для большинства случаев.\n"
+                "xfs   — Подходит для серверов и хранения больших файлов. Высокая производительность.\n"
+                "btrfs — Поддерживает снимки (snapshots), сжатие и другие возможности. Для опытных пользователей.\n"
+                "ext3  — Старый формат. Используйте только при необходимости совместимости.\n"
+                "swap  — Раздел подкачки. Используется системой, а не для хранения файлов.\n\n"
+                "Рекомендуется выбрать 'ext4', если вы не уверены."
+            )
+            
+            self.window = Window(
+                win_height,
+                win_width,
+                maxy,
+                maxx,
+                "Выбор файловой системы",
+                True,
+                self.menu,
+                can_go_next=True,
+                help_text=FILESYSTEM_HELP_TEXT
+            )
             if self.logger is not None:
                 self.logger.debug("Окно инициализировано")
         except Exception as e:
