@@ -472,7 +472,28 @@ Multiple disks:
         ]
     }
     ```
+  - _"encrypt":_ (optional)
+    - Enable LUKS encryption for this partition using `cryptsetup`.
+    - **Acceptable values:** _true_, _false_
+    - **Default value:** _false_
+    - When enabled, a mapped device `/dev/mapper/<name>` is created based on the
+      mount point (for example `/` becomes `/dev/mapper/crypt-root`). The
+      filesystem is created and mounted via this mapped name.
 
+    Example:
+    ```json
+    {
+        "partitions": [
+            {
+                "mountpoint": "/",
+                "size": 0,
+                "filesystem": "ext4",
+                "encrypt": true
+            }
+        ]
+    }
+    ```
+    
 ### _"network":_ (optional)
 Used to configure the network.
 
