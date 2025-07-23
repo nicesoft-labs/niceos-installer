@@ -70,18 +70,22 @@ class CommandUtils(object):
         return self.run(["chroot", chroot_path, "/bin/bash", "-c", cmd], update_env)
 
     @staticmethod
-    def is_vmware_virtualization(logger):
+    def is_vmware_virtualization(logger=None):
         """Проверка, выполняется ли код в виртуальной машине VMware."""
-        logger.debug("Проверка виртуализации VMware")
+        if logger:
+            logger.debug("Проверка виртуализации VMware")
         try:
             process = subprocess.Popen(["systemd-detect-virt"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = process.communicate()
             result = process.returncode == 0 and out.decode().strip() == "vmware"
-            logger.debug(f"Результат проверки VMware: {result}, вывод: {out.decode().strip()}")
+            if logger:
+                logger.debug(f"Результат проверки VMware: {result}, вывод: {out.decode().strip()}")
             return result
         except Exception as e:
-            logger.error(f"Ошибка при проверке виртуализации: {str(e)}")
+            if logger:
+                logger.error(f"Ошибка при проверке виртуализации: {str(e)}")
             return False
+
 
     @staticmethod
     def generate_password_hash(password, logger):
