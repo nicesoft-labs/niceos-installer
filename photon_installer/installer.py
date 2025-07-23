@@ -445,8 +445,10 @@ class Installer(object):
             if install_config['password']['crypted']:
                 install_config['shadow_password'] = install_config['password']['text']
             else:
-                install_config['shadow_password'] = CommandUtils.generate_password_hash(install_config['password']['text'])
-
+                install_config['shadow_password'] = CommandUtils.generate_password_hash(
+                    install_config['password']['text'], self.logger
+                )
+                
         # Do not show UI progress by default
         if 'ui' not in install_config:
             install_config['ui'] = False
