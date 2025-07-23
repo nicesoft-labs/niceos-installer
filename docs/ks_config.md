@@ -713,6 +713,14 @@ Used to configure the network.
                 }
   }
   ```
+### _"user_name":_ (optional)
+- Name of additional user to create during installation.
+
+### _"user_shadow_password":_ (optional)
+- Encrypted password hash for the additional user.
+
+### _"user_wheel":_ (optional)
+- Boolean flag to add the created user to the *wheel* group.
 
 ### _"ui":_ (optional)
 - Installer will show UI for progress status if it set to true.
