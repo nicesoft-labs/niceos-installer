@@ -1,118 +1,59 @@
-# /*
+#/*
 # * Copyright © 2020 VMware, Inc.
 # * SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-only
 # */
+
+#
 #
 #    Author: Mahmoud Bassiouny <mbassiouny@vmware.com>
 
-import os
-import logging
 from window import Window
 from actionresult import ActionResult
 from textpane import TextPane
 from os.path import join, dirname
 
-
 class License(object):
-    def __init__(self, maxy, maxx, eula_file_path, display_title, logger=None):
-        """
-        Инициализация окна лицензионного соглашения.
-
-        Аргументы:
-        - maxy (int): Максимальная координата Y экрана.
-        - maxx (int): Максимальная координата X экрана.
-        - eula_file_path (str): Путь к файлу лицензионного соглашения.
-        - display_title (str): Заголовок лицензии.
-        - logger (logging.Logger, optional): Логгер для записи событий.
-        """
-        self.logger = logger
-        if self.logger is not None:
-            self.logger.debug(f"Инициализация License: maxy={maxy}, maxx={maxx}, "
-                             f"eula_file_path={eula_file_path}, display_title={display_title}")
-
-        # Проверка входных параметров
-        if not isinstance(maxy, int) or not isinstance(maxx, int) or maxy <= 0 or maxx <= 0:
-            if self.logger is not None:
-                self.logger.error(f"Недопустимые размеры экрана: maxy={maxy}, maxx={maxx}")
-            raise ValueError("maxy и maxx должны быть положительными целыми числами")
-        if eula_file_path is not None and (not isinstance(eula_file_path, str) or not os.path.isfile(eula_file_path)):
-            if self.logger is not None:
-                self.logger.error(f"Недопустимый или несуществующий файл EULA: {eula_file_path}")
-            raise ValueError("eula_file_path должен быть существующим файлом")
-        if display_title is not None and not isinstance(display_title, str):
-            if self.logger is not None:
-                self.logger.error(f"Недопустимый заголовок: {display_title}")
-            raise ValueError("display_title должен быть строкой")
-
+    def __init__(self, maxy, maxx, eula_file_path, display_title, logging=None):
         self.maxx = maxx
         self.maxy = maxy
-        self.win_width = min(maxx - 4, 70)  # Ограничение ширины окна
-        self.win_height = min(maxy - 4, 20)  # Ограничение высоты окна
+        self.win_width = maxx - 4
+        self.win_height = maxy - 4
+
         self.win_starty = (self.maxy - self.win_height) // 2
         self.win_startx = (self.maxx - self.win_width) // 2
+
         self.text_starty = self.win_starty + 4
         self.text_height = self.win_height - 6
         self.text_width = self.win_width - 6
 
-        try:
-            self.window = Window(self.win_height, self.win_width, self.maxy, self.maxx,
-                                'Добро пожаловать в установщик Photon', False, logger=self.logger)
-            if self.logger is not None:
-                self.logger.debug("Окно инициализировано")
-        except Exception as e:
-            if self.logger is not None:
-                self.logger.error(f"Ошибка при создании окна: {str(e)}")
-            raise
+        self.window = Window(self.win_height, self.win_width, self.maxy, self.maxx,
+                             'Welcome to the Photon installer', False)
 
-        self.eula_file_path = eula_file_path if eula_file_path else join(dirname(__file__), 'EULA.txt')
-        self.title = display_title if display_title else 'ЛИЦЕНЗИОННОЕ СОГЛАШЕНИЕ VMWARE'
+        if eula_file_path:
+            self.eula_file_path = eula_file_path
+        else:
+            self.eula_file_path = join(dirname(__file__), 'EULA.txt')
+
+        if display_title:
+            self.title = display_title
+        else:
+            self.title = 'VMWARE LICENSE AGREEMENT'
 
     def display(self):
-        """
-        Отображение окна лицензионного соглашения.
+        accept_decline_items = [('<Accept>', self.accept_function),
+                                ('<Cancel>', self.exit_function)]
 
-        Возвращает:
-        - ActionResult: Результат действия.
-        """
-        if self.logger is not None:
-            self.logger.debug("Запуск отображения окна лицензии")
+        self.window.addstr(0, (self.win_width - len(self.title)) // 2, self.title)
+        self.text_pane = TextPane(self.text_starty, self.maxx, self.text_width,
+                                  self.eula_file_path, self.text_height, accept_decline_items)
 
-        try:
-            accept_decline_items = [('<Принять>', self.accept_function),
-                                    ('<Отменить>', self.exit_function)]
-            self.window.addstr(0, (self.win_width - len(self.title)) // 2, self.title)
-            self.text_pane = TextPane(self.text_starty, self.maxx, self.text_width,
-                                      self.eula_file_path, self.text_height, accept_decline_items,
-                                      logger=self.logger)
-            self.window.set_action_panel(self.text_pane)
-            self.text_pane.refresh()  # Явное отображение текста перед вызовом do_action
-            result = self.window.do_action()
-            if self.logger is not None:
-                self.logger.info(f"Результат отображения лицензии: {result}")
-            return result
-        except Exception as e:
-            if self.logger is not None:
-                self.logger.error(f"Ошибка при отображении окна: {str(e)}")
-            return ActionResult(False, {"error": str(e)})
+        self.window.set_action_panel(self.text_pane)
+
+        return self.window.do_action()
+
 
     def accept_function(self):
-        """
-        Обработка принятия лицензии.
-
-        Возвращает:
-        - ActionResult: Результат действия.
-        """
-        if self.logger is not None:
-            self.logger.info("Лицензия принята")
         return ActionResult(True, None)
 
     def exit_function(self):
-        """
-        Обработка отмены лицензии.
-
-        Возвращает:
-        - ActionResult: Результат действия.
-        """
-        if self.logger is not None:
-            self.logger.info("Лицензия отклонена, выход")
-        return ActionResult(False, {"exit": True})
+        exit(0)
