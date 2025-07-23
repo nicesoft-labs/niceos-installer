@@ -174,7 +174,7 @@ class Installer(object):
         if not install_config and ui_config:
             from iso_config import IsoConfig
             self.interactive = True
-            config = IsoConfig()
+            config = IsoConfig(logger=self.logger)
             install_config = curses.wrapper(config.configure, ui_config)
 
         self.tdnf = tdnf.Tdnf(logger=self.logger,
