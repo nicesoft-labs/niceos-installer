@@ -58,9 +58,17 @@ class BtrfsCompressionSelector(object):
 
         self.menu = Menu(menu_starty, maxx, menu_items,
                          default_selected=2, tab_enable=False)
-        self.window = Window(win_height, win_width, maxy, maxx,
-                             "\u0420\u0435\u0436\u0438\u043c \u0441\u0436\u0430\u0442\u0438\u044f", True,
-                             self.menu, can_go_next=True)
+        self.window = Window(
+            win_height,
+            win_width,
+            maxy,
+            maxx,
+            "\u0420\u0435\u0436\u0438\u043c \u0441\u0436\u0430\u0442\u0438\u044f",
+            True,
+            self.menu,
+            can_go_next=True,
+            help_text="Выберите алгоритм сжатия Btrfs и нажмите Enter.",
+        )
 
         y = 0
         max_lines = win_height - 5
