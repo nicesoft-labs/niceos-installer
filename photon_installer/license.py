@@ -53,7 +53,13 @@ class License(object):
         self.text_width = self.win_width - 6
 
         # Установка пути к файлу EULA
-        self.eula_file_path = eula_file_path if eula_file_path else join(dirname(__file__), 'EULA.txt')
+                eula_path = eula_file_path if eula_file_path else join(dirname(__file__), 'EULA.txt')
+        # если указан относительный путь, проверяем наличие файла рядом с текущим модулем
+        if not os.path.isabs(eula_path) and not os.path.exists(eula_path):
+            alt_path = join(dirname(__file__), eula_path)
+            if os.path.exists(alt_path):
+                eula_path = alt_path
+        self.eula_file_path = eula_path
         if not os.path.exists(self.eula_file_path):
             if self.logger is not None:
                 self.logger.error(f"Файл EULA не найден: {self.eula_file_path}")
