@@ -14,7 +14,7 @@ class Window(Action):
 
     def __init__(self, height, width, maxy, maxx, title, can_go_back,
                  action_panel=None, items=None, menu_helper=None, position=0,
-                 tab_enabled=True, can_go_next=False, read_text=False):
+                 tab_enabled=True, can_go_next=False, read_text=False, logger=None):
         self.can_go_back = can_go_back
         self.can_go_next = can_go_next
         self.height = height
