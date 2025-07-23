@@ -32,8 +32,9 @@ KS_STIG_PACKAGES = [
 
 
 class StigEnable(object):
-    def __init__(self, maxy, maxx, install_config):
+    def __init__(self, maxy, maxx, install_config, logger=None):
         self.install_config = install_config
+        self.logger = logger
         win_width = 50
         win_height = 12
 
