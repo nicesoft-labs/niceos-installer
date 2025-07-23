@@ -10,6 +10,8 @@ from window import Window
 from actionresult import ActionResult
 from textpane import TextPane
 from os.path import join, dirname
+import os
+import markdown
 
 class License(object):
     def __init__(self, maxy, maxx, eula_file_path, display_title, logger=None):
@@ -19,7 +21,8 @@ class License(object):
         Аргументы:
         - maxy (int): Максимальная координата Y экрана.
         - maxx (int): Максимальная координата X экрана.
-        - eula_file_path (str): Путь к файлу лицензионного соглашения.
+        - eula_file_path (str): *Игнорируется*. Лицензия всегда читается из
+          ``niceos_installer/EULA.txt``.
         - display_title (str): Заголовок лицензии.
         """
         self.maxx = maxx
@@ -37,10 +40,10 @@ class License(object):
         self.window = Window(self.win_height, self.win_width, self.maxy, self.maxx,
                              'Добро пожаловать в установщик НАЙС.ОС', False)  # Создание основного окна
 
-        if eula_file_path:
-            self.eula_file_path = eula_file_path  # Указанный путь к файлу лицензии
-        else:
-            self.eula_file_path = join(dirname(__file__), 'EULA.txt')  # По умолчанию EULA.txt в текущей директории
+        # Always use bundled EULA; ignore incoming path
+        self.eula_file_path = join(dirname(__file__), 'EULA.txt')
+        if not os.path.exists(self.eula_file_path):
+            raise Exception('EULA file not found at %s' % self.eula_file_path)
 
         if display_title:
             self.title = display_title  # Пользовательский заголовок
