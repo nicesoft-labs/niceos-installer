@@ -7,6 +7,7 @@
 #    Author: Yang Yao <yaoyang@vmware.com>
 
 import curses
+import curses.panel
 import sys
 from actionresult import ActionResult
 from action import Action
