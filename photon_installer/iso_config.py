@@ -298,6 +298,11 @@ class IsoConfig(object):
             while True:
                 if self.logger is not None:
                     self.logger.debug(f"Отображение страницы {index}: {items[index][0].__name__}")
+                    if index == len(items) - 1:
+                        self.logger.info(
+                            "Собранная конфигурация: %s",
+                            json.dumps(install_config, ensure_ascii=False, indent=2),
+                        )
                 ar = items[index][0]()
                 if ar.result and ar.result.get('inactive_screen', False):
                     ar.success = go_next
