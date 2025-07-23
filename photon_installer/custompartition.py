@@ -1,7 +1,11 @@
-#/*
-# * Copyright © 2020 VMware, Inc.
-# * SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-only
-# */
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+© 2025 ООО "НАЙС СОФТ ГРУПП" (ИНН 5024245440)
+Контакты: <niceos@ncsgp.ru>
+"""
+
 from typing import Optional, Tuple, List, Dict
 from window import Window
 from windowstringreader import WindowStringReader
@@ -44,7 +48,7 @@ class CustomPartition:
             self.win_width,
             self.maxy,
             self.maxx,
-            'Добро пожаловать в установщик Photon',
+            'Разметка дисков НАЙС.ОС',
             False,
             can_go_next=False,
             help_text='Создавайте или удаляйте разделы. Используйте меню внизу для действий.'
