@@ -383,27 +383,24 @@ class Window(Action):
             if not self.items and not self.can_go_next:
                 self.position = 0
 
-            newy = 5
-            if self.position == 0:
-                self.contentwin.addstr(self.height - 3, 5, '<Назад>',
-                                      curses.color_pair(3) if select else
-                                      curses.color_pair(1) if self.items else 0)
-                newy += len('<Назад>') + self.dist
-                for item in self.items:
-                    self.contentwin.addstr(self.height - 3, newy, item[0])
-                    newy += len(item[0]) + self.dist
-            else:
-                self.contentwin.addstr(self.height - 3, 5, '<Назад>')
-                newy += len('<Назад>') + self.dist
-                for index, item in enumerate(self.items, 1):
-                    mode = curses.color_pair(3) if index == self.position and select else \
-                           curses.color_pair(1) if index == self.position else 0
-                    self.contentwin.addstr(self.height - 3, newy, item[0], mode)
-                    newy += len(item[0]) + self.dist
+            # Очистка строки кнопок
+            self.contentwin.addstr(self.height - 2, 0, " " * (self.width - 1))
+
+            # Размещение кнопок в нижней строке справа
+            back_x = 5
+            if self.can_go_back:
+                mode = curses.color_pair(3) if self.position == 0 and select else curses.color_pair(1) if self.items else 0
+                self.contentwin.addstr(self.height - 2, back_x, '<Назад>', mode)
+
+            if self.can_go_next:
+                next_x = self.width - 5 - len('<Далее>')
+                if next_x > back_x + len('<Назад>') + 2:  # Проверка на пересечение
+                    mode = curses.color_pair(3) if self.position == 1 and select else curses.color_pair(1)
+                    self.contentwin.addstr(self.height - 2, next_x, '<Далее>', mode)
 
             self.contentwin.refresh()
             if self.logger is not None:
-                self.logger.debug(f"Меню обновлено: position={self.position}")
+                self.logger.debug(f"Меню обновлено: position={self.position}, back_x={back_x}, next_x={next_x}")
         except Exception as e:
             if self.logger is not None:
                 self.logger.error(f"Ошибка при обновлении меню: {str(e)}")
