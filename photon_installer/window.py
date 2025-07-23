@@ -8,6 +8,7 @@
 
 import curses
 import qrcode
+from typing import Optional, List, Callable, Tuple, Dict, Any
 from actionresult import ActionResult
 from action import Action
 
@@ -17,22 +18,22 @@ class Window(Action):
 
     def __init__(
         self,
-        height,
-        width,
-        maxy,
-        maxx,
-        title,
-        can_go_back,
-        action_panel=None,
-        items=None,
-        menu_helper=None,
-        position=0,
-        tab_enabled=True,
-        can_go_next=False,
-        read_text=False,
-        logger=None,
-        help_text="Справка пока недоступна",
-        help_url=None,
+        height: int,
+        width: int,
+        maxy: int,
+        maxx: int,
+        title: str,
+        can_go_back: bool,
+        action_panel: Optional[Any] = None,
+        items: Optional[List[Tuple[str, Callable, Any]]] = None,
+        menu_helper: Optional[Callable] = None,
+        position: int = 0,
+        tab_enabled: bool = True,
+        can_go_next: bool = False,
+        read_text: bool = False,
+        logger: Optional[Any] = None,
+        help_text: str = "Справка пока недоступна",
+        help_url: Optional[str] = None,
     ):
         """Инициализация окна с заданными параметрами."""
         self.can_go_back = can_go_back
@@ -52,7 +53,7 @@ class Window(Action):
         self.menu_helper = menu_helper
         self.help_text = help_text
         self.help_url = help_url
-
+        self.logger = logger
 
         # Создание окна содержимого
         self.contentwin = curses.newwin(height - 1, width - 1)
@@ -76,10 +77,9 @@ class Window(Action):
         self.shadowpanel = curses.panel.new_panel(self.shadowwin)
 
         self._setup_menu()
-
         self.hide_window()
 
-    def _setup_menu(self):
+    def _setup_menu(self) -> None:
         """Настройка меню с элементами и кнопкой 'Назад'."""
         if self.can_go_back:
             self.contentwin.addstr(self.height - 3, 5, "<Назад>")
@@ -98,23 +98,23 @@ class Window(Action):
                 self.contentwin.addstr(self.height - 3, newy, item[0])
                 newy += len(item[0]) + self.dist
 
-    def update_next_item(self):
+    def update_next_item(self) -> None:
         """Добавление элемента 'Далее' в меню."""
         self.position = 1
         self.items.append(("<Далее>", self.next_function, False))
         self.tab_enabled = False
 
-    def next_function(self):
+    def next_function(self) -> ActionResult:
         """Функция для обработки действия 'Далее'."""
         return ActionResult(True, None)
 
-    def set_action_panel(self, action_panel):
+    def set_action_panel(self, action_panel: Any) -> None:
         """Установка панели действий."""
         self.action_panel = action_panel
         if hasattr(self.action_panel, "set_help_callback"):
             self.action_panel.set_help_callback(self.show_help)
 
-    def update_menu(self, action_result):
+    def update_menu(self, action_result: ActionResult) -> ActionResult:
         """Обновление меню на основе результата действия."""
         if action_result.result and action_result.result.get("goNext"):
             return ActionResult(True, None)
@@ -143,7 +143,7 @@ class Window(Action):
             self.action_panel.hide()
             return ActionResult(False, None)
 
-    def do_action(self):
+    def do_action(self) -> ActionResult:
         """Выполнение действия окна и обработка пользовательского ввода."""
         self.show_window()
         self.refresh(0, not self.tab_enabled)
@@ -243,7 +243,7 @@ class Window(Action):
                     else:
                         self.refresh(1, True)
 
-    def refresh(self, direction, select):
+    def refresh(self, direction: int, select: bool) -> None:
         """Обновление отображения меню с учетом выделения."""
         if not self.can_go_back:
             return
@@ -269,7 +269,7 @@ class Window(Action):
 
         self.contentwin.refresh()
 
-    def show_window(self):
+    def show_window(self) -> None:
         """Отображение окна и его панелей."""
         self.shadowpanel.top()
         self.contentpanel.top()
@@ -289,7 +289,7 @@ class Window(Action):
         if self.can_go_next:
             self.position = 1
 
-    def hide_window(self):
+    def hide_window(self) -> None:
         """Скрытие окна и его панелей."""
         self.shadowpanel.hide()
         self.contentpanel.hide()
@@ -297,67 +297,120 @@ class Window(Action):
         curses.panel.update_panels()
         curses.doupdate()
 
-    def addstr(self, y, x, text, mode=0):
+    def addstr(self, y: int, x: int, text: str, mode: int = 0) -> None:
         """Добавление текста в текстовое окно."""
         self.textwin.addstr(y, x, text, mode)
 
-    def adderror(self, text):
+    def adderror(self, text: str) -> None:
         """Отображение сообщения об ошибке."""
         self.textwin.addstr(self.height - 7, 0, text, curses.color_pair(4))
         self.textwin.refresh()
 
-    def clearerror(self):
+    def clearerror(self) -> None:
         """Очистка сообщения об ошибке."""
         spaces = " " * (self.width - 6)
         self.textwin.addstr(self.height - 7, 0, spaces)
         self.textwin.refresh()
 
-    def content_window(self):
+    def content_window(self) -> Any:
         """Возвращает окно содержимого."""
         return self.textwin
 
-
-    def show_help(self):
-        """Отобразить окно справки."""
+    def show_help(self) -> None:
+        """Отобразить окно справки с учетом ограничений терминала."""
         lines = self.help_text.splitlines()
         qr_matrix = None
         qr_height = 0
         qr_width = 0
-        if self.help_url:
-            qr = qrcode.QRCode(border=1)
-            qr.add_data(self.help_url)
-            qr.make(fit=True)
-            qr_matrix = qr.get_matrix()
-            qr_height = len(qr_matrix)
-            qr_width = len(qr_matrix[0]) * 2
+        show_qr = False
 
-        height = max(7, len(lines) + qr_height + 4)
-        width = max(40, max((len(line) for line in lines), default=0), qr_width) + 4
-        starty = (self.maxy - height) // 2
-        startx = (self.maxx - width) // 2
-        helpwin = curses.newwin(height, width, starty, startx)
-        helppanel = curses.panel.new_panel(helpwin)
-        helpwin.bkgd(' ', curses.color_pair(2))
-        helpwin.box()
-        title = ' Справка '
-        helpwin.addstr(0, (width - len(title)) // 2, title)
-        for idx, line in enumerate(lines):
-            if idx + 2 < height - 2 - qr_height:
-                helpwin.addstr(2 + idx, 2, line[: width - 4])
-        if qr_matrix:
-            start_y = 2 + len(lines)
-            for r, row in enumerate(qr_matrix):
-                if start_y + r < height - 2:
-                    txt = ''.join('██' if c else '  ' for c in row)
-                    helpwin.addstr(start_y + r, 2, txt[: width - 4])
-        helpwin.addstr(height - 2, (width - len('<OK>')) // 2, '<OK>', curses.color_pair(3))
-        helppanel.top()
-        helppanel.show()
-        curses.panel.update_panels()
-        curses.doupdate()
-        helpwin.getch()
-        helppanel.hide()
-        curses.panel.update_panels()
-        curses.doupdate()
-        del helpwin
-        del helppanel
+        # Проверка и настройка QR-кода
+        if self.help_url:
+            try:
+                qr = qrcode.QRCode(border=1, version=1)  # Используем меньший QR-код
+                qr.add_data(self.help_url)
+                qr.make(fit=True)
+                qr_matrix = qr.get_matrix()
+                qr_height = len(qr_matrix)
+                qr_width = len(qr_matrix[0]) * 2  # Каждый модуль QR-кода = 2 символа
+                show_qr = qr_height <= self.maxy - 4 and qr_width <= self.maxx - 4
+                if not show_qr and self.logger:
+                    self.logger.warning(f"QR-код слишком большой для терминала (высота: {qr_height}, ширина: {qr_width})")
+            except Exception as e:
+                if self.logger:
+                    self.logger.error(f"Ошибка создания QR-кода: {e}")
+                show_qr = False
+
+        # Рассчет размеров окна справки
+        text_width = max((len(line) for line in lines), default=0)
+        width = max(40, text_width, qr_width if show_qr else 0) + 4
+        height = max(7, len(lines) + (qr_height + 2 if show_qr else 0) + 4)
+
+        # Ограничение размеров окна
+        width = min(width, self.maxx - 2)
+        height = min(height, self.maxy - 2)
+        starty = max(0, (self.maxy - height) // 2)
+        startx = max(0, (self.maxx - width) // 2)
+
+        # Проверка допустимости размеров
+        if width <= 0 or height <= 0 or starty + height > self.maxy or startx + width > self.maxx:
+            if self.logger:
+                self.logger.error(
+                    f"Недопустимые размеры окна справки: "
+                    f"width={width}, height={height}, starty={starty}, startx={startx}, "
+                    f"maxy={self.maxy}, maxx={self.maxx}"
+                )
+            self.adderror("Ошибка: Невозможно отобразить справку из-за ограничений терминала")
+            return
+
+        try:
+            # Создание окна справки
+            helpwin = curses.newwin(height, width, starty, startx)
+            helppanel = curses.panel.new_panel(helpwin)
+            helpwin.bkgd(' ', curses.color_pair(2))
+            helpwin.box()
+            title = ' Справка '
+            helpwin.addstr(0, (width - len(title)) // 2, title)
+
+            # Добавление текста справки
+            for idx, line in enumerate(lines):
+                if idx + 2 < height - 2 - (qr_height if show_qr else 0):
+                    helpwin.addstr(2 + idx, 2, line[:width - 4])
+
+            # Добавление QR-кода или URL
+            if show_qr and qr_matrix:
+                start_y = 2 + len(lines)
+                for r, row in enumerate(qr_matrix):
+                    if start_y + r < height - 2:
+                        txt = ''.join('██' if c else '  ' for c in row)
+                        helpwin.addstr(start_y + r, 2, txt[:width - 4])
+            elif self.help_url:
+                helpwin.addstr(2 + len(lines), 2, f"URL: {self.help_url}"[:width - 4])
+
+            # Добавление кнопки OK
+            helpwin.addstr(height - 2, (width - len('<OK>')) // 2, '<OK>', curses.color_pair(3))
+            helppanel.top()
+            helppanel.show()
+            curses.panel.update_panels()
+            curses.doupdate()
+
+            # Ожидание ввода пользователя
+            helpwin.getch()
+
+            # Скрытие окна
+            helppanel.hide()
+            curses.panel.update_panels()
+            curses.doupdate()
+
+        except curses.error as e:
+            if self.logger:
+                self.logger.error(f"Ошибка создания окна справки: {e}")
+            self.adderror("Ошибка: Не удалось отобразить окно справки")
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Неожиданная ошибка в show_help: {e}")
+            self.adderror("Ошибка: Не удалось отобразить окно справки")
+
+    def __del__(self) -> None:
+        """Очистка ресурсов окна."""
+        self.hide_window()
