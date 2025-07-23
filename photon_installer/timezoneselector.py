@@ -16,8 +16,10 @@ class TimezoneSelector(object):
         self.install_config = install_config
         self.maxx = maxx
         self.maxy = maxy
-        self.win_width = 60
-        self.win_height = 15
+        # Use slightly larger dimensions than other selector windows so that
+        # long timezone names and more entries fit comfortably on screen.
+        self.win_width = 80
+        self.win_height = 18
 
         self.win_starty = (self.maxy - self.win_height) // 2
         self.menu_starty = self.win_starty + 3
