@@ -57,7 +57,16 @@ class ConfirmWindow(Window):
                 self.logger.debug(f"Меню инициализировано: menu_starty={menu_starty}, maxx={maxx}, items={items}")
 
             # Вызов конструктора родительского класса
-            super(ConfirmWindow, self).__init__(height, width, maxy, maxx, 'Подтверждение', False, self.menu)
+            super(ConfirmWindow, self).__init__(
+                height,
+                width,
+                maxy,
+                maxx,
+                'Подтверждение',
+                False,
+                self.menu,
+                help_text='Нажмите <Yes> для подтверждения или <No> для отмены.',
+            )
             if self.logger is not None:
                 self.logger.debug("Родительский класс Window инициализирован")
 
