@@ -13,7 +13,7 @@ from action import Action
 class Menu(Action):
     def __init__(self, starty, maxx, items, height=0, selector_menu=False,
                  can_navigate_outside=True, horizontal=False, default_selected=0,
-                 save_sel=False, tab_enable=True):
+                 save_sel=False, tab_enable=True, logger=None):
         self.can_navigate_outside = can_navigate_outside
         self.horizontal = horizontal
         self.horizontal_padding = 10
