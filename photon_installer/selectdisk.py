@@ -13,7 +13,7 @@ from actionresult import ActionResult
 from menu import Menu
 
 class SelectDisk(object):
-    def __init__(self, maxy, maxx, install_config):
+    def __init__(self, maxy, maxx, install_config, logger=None):
         self.install_config = install_config
         self.menu_items = []
 
