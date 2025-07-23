@@ -9,7 +9,8 @@ from readmultext import ReadMulText
 from confirmwindow import ConfirmWindow
 from actionresult import ActionResult
 from device import Device
-from installer import BIOSSIZE,ESPSIZE
+from installer import BIOSSIZE, ESPSIZE
+from filesystemselector import FilesystemSelector
 
 class CustomPartition(object):
     def __init__(self, maxy, maxx, install_config):
@@ -147,27 +148,55 @@ class CustomPartition(object):
         self.window.hide_window()
 
         self.cp_config['partition_disk'] = self.devices[self.device_index].path
-        self.partition_items = []
-        self.partition_items.append(('Size in MB: ' +
-                                     str(self.disk_size[self.device_index][1]) +
-                                     ' available'))
-        self.partition_items.append(('Type: (ext3, ext4, xfs, btrfs, swap)'))
-        self.partition_items.append(('Mountpoint:'))
-        self.create_window = ReadMulText(
+
+        tmp_config = {}
+        partition_idx = str(self.cp_config['partitionsnumber'])
+
+        input_items = [
+            ('Size in MB: ' + str(self.disk_size[self.device_index][1]) + ' available'),
+            ('Mountpoint:')
+        ]
+
+        create_win = ReadMulText(
             self.maxy, self.maxx, 0,
-            self.cp_config,
-            str(self.cp_config['partitionsnumber']) + 'partition_info',
-            self.partition_items,
+            tmp_config,
+            'partition_tmp',
+            input_items,
             None,
             None,
             None,
-            self.validate_partition,   #validation function of the input
+            None,
             None,
             True,
-            )
-        result = self.create_window.do_action()
-        if result.success:
-            self.cp_config['partitionsnumber'] = self.cp_config['partitionsnumber'] + 1
+        )
+        result = create_win.do_action()
+        if not result.success:
+            return self.display()
+
+        size = tmp_config.get('partition_tmp0', '')
+        mountpoint = tmp_config.get('partition_tmp1', '')
+
+        fs_selector = FilesystemSelector(self.maxy, self.maxx)
+        fs_result = fs_selector.display()
+        if not fs_result.success:
+            return self.display()
+
+        fstype = fs_selector.selected_fs
+
+        valid, err = self.validate_partition([size, fstype, mountpoint])
+        if not valid:
+            window_height = 9
+            window_width = 50
+            window_starty = (self.maxy - window_height) // 2 + 5
+            confirm_window = ConfirmWindow(window_height, window_width, self.maxy,
+                                           self.maxx, window_starty, err, info=True)
+            confirm_window.do_action()
+            return self.display()
+
+        self.cp_config[partition_idx + 'partition_info0'] = size
+        self.cp_config[partition_idx + 'partition_info1'] = fstype
+        self.cp_config[partition_idx + 'partition_info2'] = mountpoint
+        self.cp_config['partitionsnumber'] = self.cp_config['partitionsnumber'] + 1
 
         #parse the input in install config
         return self.display()
