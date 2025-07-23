@@ -7,7 +7,6 @@
 # Описание: Класс Window для создания и управления окном интерфейса с использованием библиотеки curses.
 
 import curses
-import qrcode
 from typing import Optional, List, Callable, Tuple, Dict, Any
 from actionresult import ActionResult
 from action import Action
@@ -57,7 +56,7 @@ class Window(Action):
 
         # Создание окна содержимого
         self.contentwin = curses.newwin(height - 1, width - 1)
-        self.contentwin.bkgd(" ", curses.color_pair(2))  # Цвет фона окна
+        self.contentwin.bkgd(" ", curses.color_pair(2))  # Цвет фона окна (светлый)
         self.contentwin.erase()
         self.contentwin.box()
         self.contentwin.keypad(True)
@@ -317,38 +316,13 @@ class Window(Action):
         return self.textwin
 
     def show_help(self) -> None:
-        """Отобразить окно справки с тенью и учетом ограничений терминала."""
+        """Отобразить окно справки с тенью и улучшенным цветом."""
         lines = self.help_text.splitlines()
-        qr_matrix = None
-        qr_height = 0
-        qr_width = 0
-        show_qr = False
-
-        # Проверка и настройка QR-кода
-        if self.help_url:
-            try:
-                qr = qrcode.QRCode(border=1, version=1)  # Используем меньший QR-код
-                qr.add_data(self.help_url)
-                qr.make(fit=True)
-                qr_matrix = qr.get_matrix()
-                qr_height = len(qr_matrix)
-                qr_width = len(qr_matrix[0]) * 2  # Каждый модуль QR-кода = 2 символа
-                show_qr = qr_height <= self.maxy - 4 and qr_width <= self.maxx - 4
-                if not show_qr and self.logger:
-                    self.logger.warning(f"QR-код слишком большой для терминала (высота: {qr_height}, ширина: {qr_width})")
-            except Exception as e:
-                if self.logger:
-                    self.logger.error(f"Ошибка создания QR-кода: {e}")
-                show_qr = False
 
         # Рассчет размеров окна справки
         text_width = max((len(line) for line in lines), default=0)
-        width = max(40, text_width, qr_width if show_qr else 0) + 4
-        height = max(7, len(lines) + (qr_height + 2 if show_qr else 0) + 4)
-
-        # Ограничение размеров окна
-        width = min(width, self.maxx - 2)
-        height = min(height, self.maxy - 2)
+        width = min(max(40, text_width) + 4, self.maxx - 2)
+        height = min(max(7, len(lines) + 4), self.maxy - 2)
         starty = max(0, (self.maxy - height) // 2)
         startx = max(0, (self.maxx - width) // 2)
 
@@ -364,33 +338,35 @@ class Window(Action):
             return
 
         try:
+            # Инициализация цветовой пары для окна справки, если поддерживаются цвета
+            if curses.has_colors():
+                try:
+                    curses.init_pair(5, curses.COLOR_WHITE, curses.COLOR_BLUE)  # Белый текст на синем фоне
+                    help_color = curses.color_pair(5)
+                except curses.error:
+                    if self.logger:
+                        self.logger.warning("Не удалось инициализировать цветовую пару для окна справки, используется стандартный цвет")
+                    help_color = curses.color_pair(2)  # Фallback на цвет основного окна
+            else:
+                help_color = curses.color_pair(2)  # Fallback, если цвета не поддерживаются
+
             # Создание окна справки
             helpwin = curses.newwin(height, width, starty, startx)
             helppanel = curses.panel.new_panel(helpwin)
-            helpwin.bkgd(' ', curses.color_pair(2))
+            helpwin.bkgd(' ', help_color)  # Темно-синий фон с белым текстом
             helpwin.box()
             title = ' Справка '
-            helpwin.addstr(0, (width - len(title)) // 2, title)
+            helpwin.addstr(0, (width - len(title)) // 2, title, curses.color_pair(3))  # Яркий заголовок
 
             # Создание тени для окна справки
             help_shadowwin = curses.newwin(height, width, starty + 1, startx + 1)
             help_shadowpanel = curses.panel.new_panel(help_shadowwin)
-            help_shadowwin.bkgd(' ', curses.color_pair(0))  # Цвет тени
+            help_shadowwin.bkgd(' ', curses.color_pair(0))  # Цвет тени (темный)
 
             # Добавление текста справки
             for idx, line in enumerate(lines):
-                if idx + 2 < height - 2 - (qr_height if show_qr else 0):
-                    helpwin.addstr(2 + idx, 2, line[:width - 4])
-
-            # Добавление QR-кода или URL
-            if show_qr and qr_matrix:
-                start_y = 2 + len(lines)
-                for r, row in enumerate(qr_matrix):
-                    if start_y + r < height - 2:
-                        txt = ''.join('██' if c else '  ' for c in row)
-                        helpwin.addstr(start_y + r, 2, txt[:width - 4])
-            elif self.help_url:
-                helpwin.addstr(2 + len(lines), 2, f"URL: {self.help_url}"[:width - 4])
+                if idx + 2 < height - 2:
+                    helpwin.addstr(2 + idx, 2, line[:width - 4], curses.color_pair(5))
 
             # Добавление кнопки OK
             helpwin.addstr(height - 2, (width - len('<OK>')) // 2, '<OK>', curses.color_pair(3))
