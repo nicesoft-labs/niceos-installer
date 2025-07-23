@@ -394,9 +394,7 @@ class Window(Action):
         if self.logger is not None:
             self.logger.debug(f"Обновление меню: n={n}, select={select}")
 
-        try:
-            if not self.can_go_back:
-                
+        try:                
             self.position += n
             if self.can_go_back:
                 if self.position < 0:
