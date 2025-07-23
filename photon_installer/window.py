@@ -316,8 +316,19 @@ class Window(Action):
     def show_help(self):
         """Отобразить окно справки."""
         lines = self.help_text.splitlines()
-        height = max(7, len(lines) + 4)
-        width = max(40, max((len(line) for line in lines), default=0) + 4)
+        qr_matrix = None
+        qr_height = 0
+        qr_width = 0
+        if self.help_url:
+            qr = qrcode.QRCode(border=1)
+            qr.add_data(self.help_url)
+            qr.make(fit=True)
+            qr_matrix = qr.get_matrix()
+            qr_height = len(qr_matrix)
+            qr_width = len(qr_matrix[0]) * 2
+
+        height = max(7, len(lines) + qr_height + 4)
+        width = max(40, max((len(line) for line in lines), default=0), qr_width) + 4
         starty = (self.maxy - height) // 2
         startx = (self.maxx - width) // 2
         helpwin = curses.newwin(height, width, starty, startx)
@@ -327,8 +338,14 @@ class Window(Action):
         title = ' Справка '
         helpwin.addstr(0, (width - len(title)) // 2, title)
         for idx, line in enumerate(lines):
-            if idx + 2 < height - 2:
+            if idx + 2 < height - 2 - qr_height:
                 helpwin.addstr(2 + idx, 2, line[: width - 4])
+        if qr_matrix:
+            start_y = 2 + len(lines)
+            for r, row in enumerate(qr_matrix):
+                if start_y + r < height - 2:
+                    txt = ''.join('██' if c else '  ' for c in row)
+                    helpwin.addstr(start_y + r, 2, txt[: width - 4])
         helpwin.addstr(height - 2, (width - len('<OK>')) // 2, '<OK>', curses.color_pair(3))
         helppanel.top()
         helppanel.show()
