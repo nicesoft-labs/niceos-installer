@@ -13,7 +13,7 @@ from textpane import TextPane
 from os.path import join, dirname
 
 class License(object):
-    def __init__(self, maxy, maxx, eula_file_path, display_title, logging=None):
+    def __init__(self, maxy, maxx, eula_file_path, display_title, logger=None):
         self.maxx = maxx
         self.maxy = maxy
         self.win_width = maxx - 4
