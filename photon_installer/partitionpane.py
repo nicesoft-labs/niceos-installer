@@ -12,7 +12,7 @@ from action import Action
 class PartitionPane(Action):
     def __init__(self, starty, maxx, width, height, menu_items,
                  config={}, text_items=[], table_space=0,
-                 info=[], size_left=[]):
+                 info=[], size_left=[], logger=None):
         self.head_position = 0  #This is the start of showing
         self.menu_position = 1
         self.lines = []
