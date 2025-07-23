@@ -12,48 +12,51 @@ from __future__ import annotations
 """
 
 import os
-import commons
-from typing import Optional
+import re
 
-# Константы
-install_phase = commons.POST_INSTALL
-enabled = True
-LOCALE_CONF_PATH = "etc/locale.conf"
-LOCALE_CONF_CONTENT = "LANG=ru_RU.UTF-8\n"
-LOCALEDEF_COMMAND = "/usr/bin/localedef -c -i ru_RU -f UTF-8 ru_RU.UTF-8"
+PRE_INSTALL = "pre-install"
+PRE_PKGS_INSTALL = "pre-pkgs-install"
+POST_INSTALL = "post-install"
 
 
-def execute(installer: commons.Installer) -> None:
-    """
-    Настраивает локаль системы NiceOS.
+def replace_string_in_file(filename, search_string, replace_string):
+    with open(filename, "r") as source:
+        lines = source.readlines()
 
-    Args:
-        installer: Объект установщика NiceOS.
+    with open(filename, "w") as destination:
+        for line in lines:
+            destination.write(re.sub(search_string, replace_string, line))
 
-    Raises:
-        OSError: Если произошла ошибка при записи файла конфигурации.
-        RuntimeError: Если команда localedef завершилась с ошибкой.
-    """
-    try:
-        # Создание и запись конфигурационного файла локали
-        installer.logger.debug("Создание файла конфигурации локали")
-        locale_conf_path = os.path.join(installer.niceos_root, LOCALE_CONF_PATH)
-        with open(locale_conf_path, "w", encoding="utf-8") as locale_conf:
-            locale_conf.write(LOCALE_CONF_CONTENT)
-            installer.logger.debug(f"Файл {LOCALE_CONF_PATH} успешно создан")
 
-        # Выполнение команды localedef для настройки локали
-        # Прямой вызов localedef, так как glibc-lang может отсутствовать
-        installer.logger.debug("Выполнение команды localedef для настройки ru_RU.UTF-8")
-        installer.cmd.run_in_chroot(
-            installer.niceos_root,
-            LOCALEDEF_COMMAND
-        )
-        installer.logger.info("Локаль ru_RU.UTF-8 успешно настроена")
+def execute_scripts(installer, scripts, chroot=None, update_env=False):
+    for script in scripts:
 
-    except OSError as e:
-        installer.logger.error(f"Ошибка при настройке локали: {str(e)}")
-        raise OSError(f"Не удалось настроить локаль: {str(e)}") from e
-    except RuntimeError as e:
-        installer.logger.error(f"Ошибка выполнения localedef: {str(e)}")
-        raise RuntimeError(f"Ошибка команды localedef: {str(e)}") from e
+        abs_path = script
+        if chroot is not None:
+            abs_path = os.path.join(chroot, script.lstrip("/"))
+
+        if not os.access(abs_path, os.X_OK):
+            raise Exception(f"script {script} is not executable. ")
+
+        if update_env:
+            # Use set -a to export all variables, then source the script
+            # The run() method will handle capturing environment variables
+            script = ["/bin/bash", "-c", f"set -a && source {script}"]
+
+        installer.logger.info(f"Running script {script}")
+        if chroot is None:
+            retval = installer.cmd.run(script, update_env=update_env)
+        else:
+            retval = installer.cmd.run_in_chroot(chroot, script, update_env=update_env)
+        if retval != 0:
+            raise Exception(f"script {script} failed")
+
+
+def make_script(dir, script_name, lines):
+    script = os.path.join(dir, script_name)
+
+    with open(script, "wt") as f:
+        for l in lines:
+            f.write(f"{l}\n")
+
+    os.chmod(script, 0o700)
