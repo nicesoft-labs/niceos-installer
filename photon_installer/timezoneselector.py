@@ -64,6 +64,11 @@ class TimezoneSelector(object):
         for k in self.grouped_zones:
             self.grouped_zones[k] = sorted(self.grouped_zones[k])
         self.ru_zones = sorted(self.ru_zones)
+        # Make Moscow the first option in the list to ensure it is the
+        # default and most visible choice for users.
+        if "Europe/Moscow" in self.ru_zones:
+            self.ru_zones.insert(0,
+                                self.ru_zones.pop(self.ru_zones.index("Europe/Moscow")))
 
     def _create_main_menu(self):
         menu_items = []
