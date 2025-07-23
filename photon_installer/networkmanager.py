@@ -117,7 +117,7 @@ class NetworkManager:
     # world has no perms
     SYSTEMD_NETWORK_MODE = 0o660
 
-    def __init__(self, config, root_dir="/"):
+    def __init__(self, config, root_dir="/", logger=None):
 
         self.root_dir = root_dir
         self.systemd_network_dir = os.path.join(self.root_dir, SYSTEMD_NETWORK_DIR)
