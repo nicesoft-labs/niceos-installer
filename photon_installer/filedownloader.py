@@ -9,6 +9,7 @@
 import os
 import tempfile
 import logging
+import curses
 from commandutils import CommandUtils
 from window import Window
 from windowstringreader import WindowStringReader
@@ -219,7 +220,12 @@ class FileDownloader(object):
                 status_window.adderror(f'Ошибка: {msg} Нажмите любую клавишу для возврата...')
                 if self.logger is not None:
                     self.logger.error(f"Ошибка загрузки файла: {msg}")
-                status_window.content_window().getch()
+                while True:
+                    ch = status_window.content_window().getch()
+                    if ch == curses.KEY_F1:
+                        status_window.show_help()
+                    else:
+                        break
                 status_window.clearerror()
                 status_window.hide_window()
                 return ActionResult(False, {'goBack': True})
@@ -240,7 +246,12 @@ class FileDownloader(object):
             if self.logger is not None:
                 self.logger.error(f"Ошибка при загрузке файла или обновлении конфигурации: {str(e)}")
             status_window.adderror(f'Ошибка: {str(e)} Нажмите любую клавишу для возврата...')
-            status_window.content_window().getch()
+            while True:
+                ch = status_window.content_window().getch()
+                if ch == curses.KEY_F1:
+                    status_window.show_help()
+                else:
+                    break
             status_window.clearerror()
             status_window.hide_window()
             return ActionResult(False, {'goBack': True})
