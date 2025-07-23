@@ -87,6 +87,7 @@ class CommandUtils(object):
             return False
 
 
+
     @staticmethod
     def generate_password_hash(password, logger):
         """Генерация хэша для пароля."""
