@@ -386,7 +386,7 @@ class Window(Action):
             # Очистка строки кнопок
             self.contentwin.addstr(self.height - 2, 0, " " * (self.width - 1))
 
-            # Размещение кнопок в нижней строке справа
+            # Размещение кнопок в нижней строке
             back_x = 5
             if self.can_go_back:
                 mode = curses.color_pair(3) if self.position == 0 and select else curses.color_pair(1) if self.items else 0
@@ -397,6 +397,10 @@ class Window(Action):
                 if next_x > back_x + len('<Назад>') + 2:  # Проверка на пересечение
                     mode = curses.color_pair(3) if self.position == 1 and select else curses.color_pair(1)
                     self.contentwin.addstr(self.height - 2, next_x, '<Далее>', mode)
+
+            # Обновление action_panel, если он существует
+            if self.action_panel:
+                self.action_panel.refresh()
 
             self.contentwin.refresh()
             if self.logger is not None:
