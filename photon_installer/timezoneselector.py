@@ -44,11 +44,11 @@ class TimezoneSelector(object):
         self.maxy = maxy
         self.win_width = min(80, maxx - 4)  # Ограничение ширины окна
         self.win_height = min(18, maxy - 4)  # Ограничение высоты окна
-        self.win_starty = (self.maxy - self.win_height) // 2
-        self.win_startx = (self.maxx - self.win_width) // 2
+        self.win_starty = max(0, (self.maxy - self.win_height) // 2)
+        self.win_startx = max(0, (self.maxx - self.win_width) // 2)
         self.menu_starty = self.win_starty + 3
-        self.menu_height = self.win_height - 4  # Ограничение высоты меню
-        self.menu_width = min(self.win_width - 4, maxx - 8)  # Ограничение ширины меню с учетом отступов
+        self.menu_height = self.win_height - 6  # Уменьшено для места под кнопки
+        self.menu_width = min(self.win_width - 4, maxx - self.win_startx - 8)  # Учет отступов и границ
 
         self._load_timezones()
         self._selected_group = None
@@ -127,8 +127,8 @@ class TimezoneSelector(object):
         menu_items.append(("Другие регионы...", self._other_timezones, None))
         max_item_length = max(max_item_length, len("Другие регионы..."))
 
-        # Ограничение ширины меню с учетом доступного пространства
-        menu_width = min(self.menu_width, max_item_length + 4, self.maxx - self.win_startx - 4)
+        # Ограничение ширины меню с учетом границ
+        menu_width = min(self.menu_width, max_item_length + 4)
         default_selected = 0
         if self.default_zone in self.ru_zones:
             default_selected = self.ru_zones.index(self.default_zone)
@@ -138,7 +138,7 @@ class TimezoneSelector(object):
         try:
             self.menu = Menu(self.menu_starty, menu_width, menu_items, self.menu_height,
                              default_selected=default_selected, tab_enable=False, logger=self.logger)
-            # Корректировка позиции панели с учетом границ экрана
+            # Корректировка позиции панели
             menu_x = self.win_startx + max(0, (self.win_width - self.menu.width) // 2)
             menu_x = min(menu_x, self.maxx - self.menu.width)
             self.menu.panel.move(self.menu_starty, menu_x)
@@ -215,7 +215,8 @@ class TimezoneSelector(object):
             groups = sorted(self.grouped_zones.keys())
             group_items = [(g, self._select_group, g) for g in groups]
             max_group_length = max(len(g) for g in groups) if groups else 0
-            group_menu_width = min(self.menu_width, max_group_length + 4, self.maxx - self.win_startx - 4)
+            group_menu_width = min(self.menu_width, max_group_length + 4)
+            group_menu_width = min(group_menu_width, self.maxx - self.win_startx - 8)
 
             group_menu = Menu(self.menu_starty, group_menu_width, group_items, self.menu_height,
                               default_selected=0, tab_enable=False, logger=self.logger)
@@ -237,7 +238,8 @@ class TimezoneSelector(object):
             zones = self.grouped_zones[self._selected_group]
             zone_items = [(z, self._select_zone, z) for z in zones]
             max_zone_length = max(len(z) for z in zones) if zones else 0
-            zone_menu_width = min(self.menu_width, max_zone_length + 4, self.maxx - self.win_startx - 4)
+            zone_menu_width = min(self.menu_width, max_zone_length + 4)
+            zone_menu_width = min(zone_menu_width, self.maxx - self.win_startx - 8)
 
             zone_menu = Menu(self.menu_starty, zone_menu_width, zone_items, self.menu_height,
                              default_selected=0, tab_enable=False, logger=self.logger)
