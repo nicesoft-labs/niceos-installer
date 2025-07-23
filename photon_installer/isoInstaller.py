@@ -88,8 +88,11 @@ class IsoInstaller(object):
             ui_config={}
         ui_config['options_file'] = options.options_file
 
-        #initializing eula file path
-        ui_config['eula_file_path'] = options.eula_file_path
+        # Always use bundled EULA; abort if not present
+        default_eula = join(dirname(__file__), 'EULA.txt')
+        if not os.path.exists(default_eula):
+            raise Exception('EULA file not found at %s' % default_eula)
+        ui_config['eula_file_path'] = default_eula
 
         #initializing license display text
         ui_config['license_display_title'] = options.license_display_title
