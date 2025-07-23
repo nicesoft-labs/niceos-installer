@@ -394,9 +394,13 @@ class IsoConfig(object):
                 "niceos/5.2/x86_64/minimal"
             )
             confirm_window = ConfirmWindow(
-                11, 60, maxy, maxx, (maxy - 11) // 2 + 7,
-                'Начать установку? Все данные на выбранном диске будут потеряны.\n\n'
-                'Нажмите <Да> для подтверждения или <Нет> для выхода', logger=self.logger
+                11,
+                60,
+                maxy,
+                maxx,
+                (maxy - 11) // 2 + 7,
+                "Начать установку? Все данные на выбранном диске будут потеряны.\n\nНажмите <Да> для подтверждения или <Нет> для выхода",
+                logger=self.logger,
             )
 
             items.append((license_agreement.display, False))
