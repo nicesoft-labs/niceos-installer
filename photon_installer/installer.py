@@ -110,7 +110,7 @@ class Installer(object):
 
     def __init__(self, working_directory=Defaults.WORKING_DIRECTORY, rpm_path=None,
                  repo_paths=Defaults.REPO_PATHS, log_path=Defaults.LOG_PATH,
-                 photon_release_version=Defaults.PHOTON_RELEASE_VERSION):
+                 photon_release_version=Defaults.NICEOS_RELEASE_VERSION):
         self.exiting = False
         self.interactive = False
         self.install_config = None
