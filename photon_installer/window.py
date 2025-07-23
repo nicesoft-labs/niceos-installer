@@ -87,10 +87,10 @@ class Window(Action):
             if self.logger is not None:
                 self.logger.debug("Окно textwin инициализировано")
 
-            # self.shadowwin = curses.newwin(height - 1, width - 1)
-            # self.shadowwin.bkgd(' ', curses.color_pair(0))
-            # if self.logger is not None:
-            #     self.logger.debug("Окно shadowwin инициализировано")
+            self.shadowwin = curses.newwin(height - 1, width - 1)
+            self.shadowwin.bkgd(' ', curses.color_pair(0))
+            if self.logger is not None:
+                self.logger.debug("Окно shadowwin инициализировано")
 
             self.contentpanel = curses.panel.new_panel(self.contentwin)
             self.textpanel = curses.panel.new_panel(self.textwin)
