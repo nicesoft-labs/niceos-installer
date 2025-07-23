@@ -129,7 +129,7 @@ class IsoInitrd:
 cd /installer
 ACTIVE_CONSOLE="$(< /sys/devices/virtual/tty/console/active)"
 install() {{
-    LANG=en_US.UTF-8 niceos-installer -i iso -o {install_options_file} -e EULA.txt -t "{self.license_text}" -v {self.niceos_release_version} && shutdown -r now
+    LANG=ru_RU.UTF-8 niceos-installer -i iso -o {install_options_file} -e EULA.txt -t "{self.license_text}" -v {self.niceos_release_version} && shutdown -r now
 }}
 try_run_installer() {{
     if [ "$ACTIVE_CONSOLE" == "tty0" ]; then
@@ -392,7 +392,7 @@ try_run_installer || exec /bin/bash
             self.install_initrd_packages()
 
             with open(f"{self.initrd_path}/etc/locale.conf", "w", encoding="utf-8") as locale_conf:
-                locale_conf.write("LANG=en_US.UTF-8")
+                locale_conf.write("LANG=ru_RU.UTF-8")
                 if self.logger is not None:
                     self.logger.debug("Создан файл locale.conf")
 
