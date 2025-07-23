@@ -3,3 +3,4 @@ pyOpenSSL
 pyYAML
 jc
 passlib
+markdown
