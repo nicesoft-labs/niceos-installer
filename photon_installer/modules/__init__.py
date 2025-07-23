@@ -1,15 +1,28 @@
-# /*
-# * Copyright © 2020 VMware, Inc.
-# * SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-only
-# */
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+© 2025 ООО "НАЙС СОФТ ГРУПП" (ИНН 5024245440)
+Контакты: <niceos@ncsgp.ru>
+
+Описание:
+Автоматически импортирует все модули Python в текущем каталоге,
+за исключением __init__.py. Используется для регистрации модулей установки.
+"""
 
 import glob
+import os
 
 from os.path import dirname, basename, isfile, join
 
-modules = glob.glob(join(dirname(__file__), "*.py"))
+# Получаем путь к текущей директории (где находится __init__.py)
+_current_dir = dirname(__file__)
+
+# Ищем все .py файлы, кроме __init__.py
+_modules = glob.glob(join(_current_dir, "*.py"))
+
 __all__ = [
     basename(f)[:-3]
-    for f in modules
-    if isfile(f) and not f.endswith('__init__.py')
+    for f in _modules
+    if isfile(f) and not f.endswith("__init__.py")
 ]
