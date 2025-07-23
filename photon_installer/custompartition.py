@@ -12,7 +12,7 @@ from device import Device
 from installer import BIOSSIZE,ESPSIZE
 
 class CustomPartition(object):
-    def __init__(self, maxy, maxx, install_config):
+    def __init__(self, maxy, maxx, install_config, logger=None):
         self.maxx = maxx
         self.maxy = maxy
         self.win_width = maxx - 4
