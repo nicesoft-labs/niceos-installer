@@ -7,6 +7,7 @@
 """
 
 import curses
+import curses.panel
 import logging
 from actionresult import ActionResult
 from action import Action
