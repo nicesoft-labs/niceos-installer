@@ -96,9 +96,7 @@ class License(object):
             if self.logger is not None:
                 self.logger.debug(f"Создано меню действий: {accept_decline_items}")
 
-            maxy, maxx = self.window.content_window().getmaxyx()
-            x = max((maxx - len(self.title)) // 2, 0)
-            self.window.addstr(0, x, self.title)
+            self.window.addstr(0, (self.win_width - len(self.title)) // 2, self.title)
 
             self.text_pane = TextPane(self.text_starty, self.maxx, self.text_width,
                                       self.eula_file_path, self.text_height, accept_decline_items,
