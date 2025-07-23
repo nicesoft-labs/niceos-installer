@@ -13,6 +13,7 @@ class PartitionPane(Action):
     def __init__(self, starty, maxx, width, height, menu_items,
                  config={}, text_items=[], table_space=0,
                  info=[], size_left=[], logger=None):
+        self.help_callback = None
         self.head_position = 0  #This is the start of showing
         self.menu_position = 1
         self.lines = []
@@ -174,11 +175,17 @@ class PartitionPane(Action):
         curses.panel.update_panels()
         curses.doupdate()
 
+    def set_help_callback(self, cb):
+        self.help_callback = cb
+    
     def do_action(self):
         while True:
             self.refresh()
 
             key = self.window.getch()
+            if key == curses.KEY_F1 and self.help_callback:
+                self.help_callback()
+                continue
 
             if key in [curses.KEY_ENTER, ord('\n')]:
                 self.hide()
