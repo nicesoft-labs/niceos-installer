@@ -87,7 +87,7 @@ class FilesystemSelector(object):
                 True,
                 self.menu,
                 can_go_next=True,
-                help_text=FILESYSTEM_HELP_TEXT
+                help_text=FILESYSTEM_HELP_TEXT,
             )
             if self.logger is not None:
                 self.logger.debug("Окно инициализировано")
