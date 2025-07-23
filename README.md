@@ -56,7 +56,9 @@ Building Photon Cloud images using Photon OS Installer
 ```
 
 Using Photon OS Installer as python library\
-install config mentioned below can be referred from [Photon Project](https://github.com/vmware/photon/blob/master/installer/sample_ks.cfg)
+install config mentioned below can be referred from [Photon Project](https://github.com/vmware/photon/blob/master/installer/sample_ks.cfg).
+For a complete description of kickstart options, including `ansible` playbooks,
+see [docs/ks_config.md](docs/ks_config.md).
 ```python
 import photon_installer
 from photon_installer.installer import Installer
