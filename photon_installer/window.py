@@ -7,6 +7,7 @@
 # Описание: Класс Window для создания и управления окном интерфейса с использованием библиотеки curses.
 
 import curses
+import os
 from typing import Optional, List, Callable, Tuple, Dict, Any
 from actionresult import ActionResult
 from action import Action
@@ -346,7 +347,7 @@ class Window(Action):
                 except curses.error:
                     if self.logger:
                         self.logger.warning("Не удалось инициализировать цветовую пару для окна справки, используется стандартный цвет")
-                    help_color = curses.color_pair(2)  # Фallback на цвет основного окна
+                    help_color = curses.color_pair(2)  # Fallback на цвет основного окна
             else:
                 help_color = curses.color_pair(2)  # Fallback, если цвета не поддерживаются
 
@@ -397,6 +398,23 @@ class Window(Action):
                 self.logger.error(f"Неожиданная ошибка в show_help: {e}")
             self.adderror("Ошибка: Не удалось отобразить окно справки")
 
+    def cleanup(self) -> None:
+        """Очистка всех ресурсов окна и восстановление состояния терминала."""
+        try:
+            self.hide_window()
+            # Восстановление состояния терминала
+            curses.curs_set(1)  # Показать курсор
+            curses.echo()  # Включить эхо ввода
+            curses.endwin()  # Завершить режим curses
+            # Очистка экрана через системную команду
+            os.system('clear')
+        except curses.error as e:
+            if self.logger:
+                self.logger.error(f"Ошибка при очистке терминала: {e}")
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Неожиданная ошибка при очистке: {e}")
+
     def __del__(self) -> None:
-        """Очистка ресурсов окна."""
-        self.hide_window()
+        """Очистка ресурсов окна при удалении объекта."""
+        self.cleanup()
