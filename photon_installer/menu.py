@@ -14,6 +14,7 @@ class Menu(Action):
     def __init__(self, starty, maxx, items, height=0, selector_menu=False,
                  can_navigate_outside=True, horizontal=False, default_selected=0,
                  save_sel=False, tab_enable=True, logger=None):
+        self.help_callback = None
         self.can_navigate_outside = can_navigate_outside
         self.horizontal = horizontal
         self.horizontal_padding = 10
@@ -69,6 +70,9 @@ class Menu(Action):
     def can_save_sel(self, can_save_sel):
         self.save_sel = can_save_sel
 
+    def set_help_callback(self, cb):
+        self.help_callback = cb
+    
     def lengthen_items(self):
         width = 0
         for item in self.items:
@@ -170,6 +174,9 @@ class Menu(Action):
             self.refresh()
 
             key = self.window.getch()
+            if key == curses.KEY_F1 and self.help_callback:
+                self.help_callback()
+                continue
 
             if key in [curses.KEY_ENTER, ord('\n')]:
                 if self.selector_menu:
