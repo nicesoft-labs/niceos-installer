@@ -321,6 +321,7 @@ class Window(Action):
         starty = (self.maxy - height) // 2
         startx = (self.maxx - width) // 2
         helpwin = curses.newwin(height, width, starty, startx)
+        helppanel = curses.panel.new_panel(helpwin)
         helpwin.bkgd(' ', curses.color_pair(2))
         helpwin.box()
         title = ' Справка '
@@ -329,10 +330,13 @@ class Window(Action):
             if idx + 2 < height - 2:
                 helpwin.addstr(2 + idx, 2, line[: width - 4])
         helpwin.addstr(height - 2, (width - len('<OK>')) // 2, '<OK>', curses.color_pair(3))
-        helpwin.refresh()
-        helpwin.getch()
-        helpwin.clear()
-        helpwin.refresh()
-        del helpwin
+        helppanel.top()
+        helppanel.show()
         curses.panel.update_panels()
         curses.doupdate()
+        helpwin.getch()
+        helppanel.hide()
+        curses.panel.update_panels()
+        curses.doupdate()
+        del helpwin
+        del helppanel
