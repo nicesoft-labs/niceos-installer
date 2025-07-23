@@ -126,7 +126,7 @@ class Window(Action):
             raise
 
         # Hide window after initialization to match previous behavior
-        self.hide_window()
+        # self.hide_window()
     
     def update_next_item(self):
         """
