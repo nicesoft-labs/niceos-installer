@@ -85,7 +85,8 @@ class CustomPartition(object):
             self.disk_size = []
             self.disk_to_index = {}
             for index, device in enumerate(self.devices):
-                size_mb = int(device.size / 1048576) - (BIOSSIZE + ESPSIZE + 2)
+                size_bytes = Device._convert_to_bytes(device.size, self.logger)
+                size_mb = size_bytes // 1048576 - (BIOSSIZE + ESPSIZE + 2)
                 self.disk_size.append((device.path, size_mb))
                 self.disk_to_index[device.path] = index
             if self.logger is not None:
@@ -134,9 +135,10 @@ class CustomPartition(object):
             self.table_space = 5
             title = 'Текущие разделы:\n'
             self.window.addstr(0, (self.win_width - len(title)) // 2, title)
+            total_size_mb = Device._convert_to_bytes(self.devices[self.device_index].size, self.logger) // 1048576
 
             info = (f"Неразмеченное пространство: {self.disk_size[self.device_index][1]} МБ, "
-                    f"Общий размер: {int(self.devices[self.device_index].size / 1048576)} МБ")
+                f"Общий размер: {total_size_mb} МБ")
 
             self.partition_pane = PartitionPane(self.text_starty, self.maxx, self.text_width,
                                               self.text_height, self.disk_buttom_items,
@@ -420,8 +422,13 @@ class CustomPartition(object):
             self.logger.debug("Очистка конфигурации разделов")
         try:
             self.cp_config = {'partitionsnumber': 0}
-            self.disk_size = [(device.path, int(device.size / 1048576) - (BIOSSIZE + ESPSIZE + 2))
-                              for device in self.devices]
+            self.disk_size = [
+                (
+                    device.path,
+                    Device._convert_to_bytes(device.size, self.logger) // 1048576 - (BIOSSIZE + ESPSIZE + 2)
+                )
+                for device in self.devices
+            ]
             self.path_checker = []
             self.has_slash = False
             self.has_remain = False
