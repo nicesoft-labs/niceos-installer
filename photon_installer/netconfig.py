@@ -75,7 +75,8 @@ class NetworkConfigure:
             True,
             action_panel=self.package_menu,
             can_go_next=True,
-            position=1
+            position=1,
+            help_text='Выберите способ настройки сети и подтвердите выбор.',
         )
 
     @staticmethod
