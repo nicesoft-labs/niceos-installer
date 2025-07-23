@@ -164,6 +164,18 @@ Multiple disks:
     "hostname": "photon-machine"
   }
   ```
+
+### _"timezone":_ (optional)
+- Set system timezone.
+  - **Default value:** "Europe/Moscow"
+
+  Example:
+  ```json
+  {
+    "timezone": "Asia/Yekaterinburg"
+  }
+  ```
+  
 ### _"insecure_repo":_ (optional)
 - Set `sslverify=0` to the tdnf configuration of all installer
  packages repos. If not specified, or set as false, https server
