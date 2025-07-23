@@ -7,6 +7,7 @@
 # Описание: Класс Window для создания и управления окном интерфейса с использованием библиотеки curses.
 
 import curses
+import qrcode
 from actionresult import ActionResult
 from action import Action
 
@@ -31,6 +32,7 @@ class Window(Action):
         read_text=False,
         logger=None,
         help_text="Справка пока недоступна",
+        help_url=None,
     ):
         """Инициализация окна с заданными параметрами."""
         self.can_go_back = can_go_back
@@ -49,6 +51,8 @@ class Window(Action):
         self.items = items if items else []
         self.menu_helper = menu_helper
         self.help_text = help_text
+        self.help_url = help_url
+
 
         # Создание окна содержимого
         self.contentwin = curses.newwin(height - 1, width - 1)
