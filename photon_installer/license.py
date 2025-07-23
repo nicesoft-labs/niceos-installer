@@ -45,7 +45,7 @@ class License(object):
         if display_title:
             self.title = display_title  # Пользовательский заголовок
         else:
-            self.title = 'ЛИЦЕНЗИОННОЕ СОГЛАШЕНИЕ VMWARE'  # Заголовок по умолчанию
+            self.title = 'ЛИЦЕНЗИОННОЕ СОГЛАШЕНИЕ ООО "НАЙС СОФТ ГРУПП"'  # Заголовок по умолчанию
 
     def display(self):
         """
