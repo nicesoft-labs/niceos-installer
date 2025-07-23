@@ -7,6 +7,8 @@
 from menu import Menu
 from window import Window
 from actionresult import ActionResult
+import textwrap
+
 
 
 class BtrfsCompressionSelector(object):
@@ -26,12 +28,22 @@ class BtrfsCompressionSelector(object):
         self.maxx = maxx
         self.selected = None
 
-        lines = [
+        raw_lines = [
             "\u0420\u0435\u0436\u0438\u043c \u0441\u0436\u0430\u0442\u0438\u044f (Compression)",
-            "\u041f\u043e\u0437\u0432\u043e\u043b\u044f\u0435\u0442 \u0432\u043a\u043b\u044e\u0447\u0438\u0442\u044c \u0441\u0436\u0430\u0442\u0438\u0435 \u0434\u0430\u043d\u043d\u044b\u0445 \u043d\u0430 \u0443\u0440\u043e\u0432\u043d\u0435 \u0444\u0430\u0439\u043b\u043e\u0432\u043e\u0439 \u0441\u0438\u0441\u0442\u0435\u043c\u044b."
+            "",
+            "\u041f\u043e\u0437\u0432\u043e\u043b\u044f\u0435\u0442 \u0432\u043a\u043b\u044e\u0447\u0438\u0442\u044c \u0441\u0436\u0430\u0442\u0438\u0435 \u0434\u0430\u043d\u043d\u044b\u0445 \u043d\u0430 \u0443\u0440\u043e\u0432\u043d\u0435 \u0444\u0430\u0439\u043b\u043e\u0432\u043e\u0439 \u0441\u0438\u0441\u0442\u0435\u043c\u044b.",
+            "",
         ] + [desc for _n, desc in self.MODES]
 
-        max_len = max(len(l) for l in lines)
+        max_text_width = maxx - 7
+        lines = []
+        for line in raw_lines:
+            if line:
+                lines.extend(textwrap.wrap(line, max_text_width))
+            else:
+                lines.append("")
+
+        max_len = max(len(l) for l in lines) if lines else 0
         win_width = min(max_len + 4, maxx - 2)
 
         text_height = len(lines)
@@ -51,12 +63,9 @@ class BtrfsCompressionSelector(object):
                              self.menu, can_go_next=True)
 
         y = 0
-        self.window.addstr(y, 0, lines[0])
-        y += 2
-        self.window.addstr(y, 0, lines[1])
-        y += 2
-        for desc in lines[2:]:
-            self.window.addstr(y, 0, desc)
+        max_lines = win_height - 5
+        for line in lines[:max_lines]:
+            self.window.addstr(y, 0, line)
             y += 1
 
     def _set_mode(self, mode):
