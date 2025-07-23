@@ -955,6 +955,11 @@ class Installer(object):
             if retval != 0:
                 self.logger.error("Failed to detach LVM physical volume: {}".format(pv))
 
+        # Close encrypted volumes
+        for p in self.install_config['partitions']:
+            if p.get('encrypt') and p.get('crypt_name'):
+                self.cmd.run(['cryptsetup', 'close', p['crypt_name']])
+
         # Get the disks from partition table
         disk_ids = set(partition['disk_id'] for partition in self.install_config['partitions'])
         for disk_id in disk_ids:
@@ -1143,7 +1148,8 @@ class Installer(object):
             if self._get_partition_type(partition) in [PartitionType.BIOS, PartitionType.SWAP]:
                 continue
 
-            params.extend(['--partitionmountpoint', partition["path"], partition["mountpoint"]])
+            device = partition.get('mapped_path', partition['path'])
+            params.extend(['--partitionmountpoint', device, partition["mountpoint"]])
         return params
 
     def _mount_partitions(self):
@@ -1159,14 +1165,16 @@ class Installer(object):
                     options = partition['fs_options'].split(",")
                 elif type(partition['fs_options']) is list:
                     options = partition['fs_options']
-            self._mount(partition['path'], partition['mountpoint'], options=options, create=True)
+            device = partition.get('mapped_path', partition['path'])
+            self._mount(device, partition['mountpoint'], options=options, create=True)
 
             if partition['filesystem'] == "btrfs" and "btrfs" in partition:
                 mntpoint = os.path.join(self.photon_root, partition['mountpoint'].strip('/'))
                 if 'label' in partition['btrfs']:
                     self.cmd.run(f"btrfs filesystem label {mntpoint} {partition['btrfs']['label']}")
                 if 'subvols' in partition["btrfs"]:
-                    self._create_btrfs_subvolumes(mntpoint, partition['btrfs'], partition['path'])
+                    src = partition.get('mapped_path', partition['path'])
+                    self._create_btrfs_subvolumes(mntpoint, partition['btrfs'], src)
 
 
     def _initialize_system(self):
@@ -2018,6 +2026,19 @@ class Installer(object):
             # Do not format BIOS boot partition
             if ptype == PartitionType.BIOS:
                 continue
+            device = partition['path']
+            if partition.get('encrypt'):
+                name = 'crypt-' + (partition.get('mountpoint', '') or 'root').strip('/').replace('/', '-')
+                crypt_cmd = ['cryptsetup', '-q', 'luksFormat', device]
+                retval = self.cmd.run(crypt_cmd)
+                if retval != 0:
+                    raise Exception(f"Failed to encrypt {device}")
+                retval = self.cmd.run(['cryptsetup', 'open', device, name])
+                if retval != 0:
+                    raise Exception(f"Failed to open encrypted device {device}")
+                device = os.path.join('/dev/mapper', name)
+                partition['mapped_path'] = device
+                partition['crypt_name'] = name
             if ptype == PartitionType.SWAP:
                 mkfs_cmd = ['mkswap']
             else:
@@ -2031,13 +2052,13 @@ class Installer(object):
                 options = re.sub(r"[^\S]", " ", partition['mkfs_options']).split()
                 mkfs_cmd.extend(options)
 
-            mkfs_cmd.extend([partition['path']])
+            mkfs_cmd.extend([device])
             retval = self.cmd.run(mkfs_cmd)
 
             if retval != 0:
                 raise Exception(
                     "Failed to format {} partition @ {}".format(partition['filesystem'],
-                                                                partition['path']))
+                                                                device))
 
     def getfile(self, filename):
         """
