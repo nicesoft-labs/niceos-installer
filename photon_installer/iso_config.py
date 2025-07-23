@@ -25,6 +25,8 @@ from commandutils import CommandUtils
 from filedownloader import FileDownloader
 from netconfig import NetworkConfigure
 from stigenable import StigEnable
+from wheelselector import WheelSelector
+
 
 
 class IsoConfig(object):
@@ -142,6 +144,15 @@ class IsoConfig(object):
             password = str(message)
         return password == text, "Error: " + password
 
+    @staticmethod
+    def validate_username(text):
+        if not text:
+            return False, "Error: Invalid input"
+        pattern = r'^[a-z_][a-z0-9_-]*[$]?$'
+        if re.match(pattern, text):
+            return True, None
+        return False, "Error: Invalid username"
+    
     def configure(self, stdscreen, ui_config):
         """Configuration through UI"""
         curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)
@@ -222,6 +233,35 @@ class IsoConfig(object):
             CommandUtils.generate_password_hash, # post processing of the input field
             'Confirm root password', 'Confirm Root password:', 2, install_config)
 
+        user_name_reader = WindowStringReader(
+            maxy, maxx, 10, 70,
+            'user_name',
+            None,
+            None,
+            None,
+            IsoConfig.validate_username,
+            None,
+            'Create user', 'Username:', 2, install_config)
+        user_password_reader = WindowStringReader(
+            maxy, maxx, 10, 70,
+            'user_shadow_password',
+            None,
+            '*',
+            None,
+            IsoConfig.validate_password,
+            None,
+            'Set up user password', 'User password:', 2, install_config)
+        confirm_user_password_reader = WindowStringReader(
+            maxy, maxx, 10, 70,
+            'user_shadow_password',
+            "Passwords don't match, please try again.",
+            '*',
+            None,
+            None,
+            CommandUtils.generate_password_hash,
+            'Confirm user password', 'Confirm user password:', 2, install_config)
+        wheel_selector = WheelSelector(maxy, maxx, install_config)
+        
         ostree_server_selector = OSTreeServerSelector(maxy, maxx, install_config)
         ostree_url_reader = OSTreeWindowStringReader(
             maxy, maxx, 10, 80,
@@ -273,6 +313,10 @@ class IsoConfig(object):
         items.append((hostname_reader.get_user_string, True))
         items.append((root_password_reader.get_user_string, True))
         items.append((confirm_password_reader.get_user_string, False))
+        items.append((user_name_reader.get_user_string, True))
+        items.append((user_password_reader.get_user_string, True))
+        items.append((confirm_user_password_reader.get_user_string, True))
+        items.append((wheel_selector.display, True))
         items.append((ostree_server_selector.display, True))
         items.append((ostree_url_reader.get_user_string, True))
         items.append((ostree_ref_reader.get_user_string, True))
