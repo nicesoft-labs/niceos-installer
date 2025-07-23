@@ -21,7 +21,7 @@ def main():
     parser.add_argument("-o", "--options-file", dest="options_file")
     parser.add_argument("-w", "--working-directory", dest="working_directory")
     parser.add_argument("-l", "--log-path", dest="log_path", default="/var/log")
-    parser.add_argument("-e", "--eula-file", dest="eula_file_path", default=None)
+    # EULA file now shipped with installer; do not allow overriding
     parser.add_argument("-t", "--license-title", dest="license_display_title", default=None)
     parser.add_argument("-v", "--photon-release-version", dest="photon_release_version", required=True)
     parser.add_argument("-p", "--param", dest='params', action='append', default=[])
