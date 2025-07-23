@@ -1,140 +1,282 @@
-#/*
-# * Copyright © 2024 VMware, Inc.
-# * SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-only
-# */
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+© 2025 ООО "НАЙС СОФТ ГРУПП" (ИНН 5024245440)
+Контакты: <niceos@ncsgp.ru>
+"""
 
 import os
 from zoneinfo import available_timezones
-
+import logging
 from menu import Menu
 from window import Window
 from actionresult import ActionResult
 
 
 class TimezoneSelector(object):
-    def __init__(self, maxy, maxx, install_config):
+    def __init__(self, maxy, maxx, install_config, logger=None):
+        """
+        Инициализация селектора часовых поясов.
+
+        Аргументы:
+        - maxy (int): Максимальная координата Y экрана.
+        - maxx (int): Максимальная координата X экрана.
+        - install_config (dict): Конфигурация установки.
+        - logger (logging.Logger, optional): Логгер для записи событий. Если None, логирование не выполняется.
+        """
+        self.logger = logger
+        if self.logger is not None:
+            self.logger.debug(f"Инициализация TimezoneSelector: maxy={maxy}, maxx={maxx}, install_config={install_config}")
+
+        # Проверка входных параметров
+        if not isinstance(maxy, int) or not isinstance(maxx, int) or maxy <= 0 or maxx <= 0:
+            if self.logger is not None:
+                self.logger.error(f"Недопустимые размеры экрана: maxy={maxy}, maxx={maxx}")
+            raise ValueError("maxy и maxx должны быть положительными целыми числами")
+        if not isinstance(install_config, dict):
+            if self.logger is not None:
+                self.logger.error(f"Недопустимая конфигурация: {install_config}")
+            raise ValueError("install_config должен быть словарем")
+
         self.install_config = install_config
         self.maxx = maxx
         self.maxy = maxy
-        # Use slightly larger dimensions than other selector windows so that
-        # long timezone names and more entries fit comfortably on screen.
-        self.win_width = 80
-        self.win_height = 18
-
+        self.win_width = min(80, maxx - 4)  # Ограничение ширины окна
+        self.win_height = min(18, maxy - 4)  # Ограничение высоты окна
         self.win_starty = (self.maxy - self.win_height) // 2
         self.win_startx = (self.maxx - self.win_width) // 2
         self.menu_starty = self.win_starty + 3
-        # number of rows for the time zone menu. Limit the height so that
-        # the menu panel always fits on screen even when there are many
-        # time zones available.
-        self.menu_height = self.win_height - 4
+        self.menu_height = self.win_height - 4  # Ограничение высоты меню
+        self.menu_width = self.win_width - 4  # Ограничение ширины меню
 
         self._load_timezones()
         self._selected_group = None
         self._selected_zone = None
         self.default_zone = "Europe/Moscow"
 
-        self._create_main_menu()
+        try:
+            self._create_main_menu()
+            if self.logger is not None:
+                self.logger.debug("Главное меню создано")
+        except Exception as e:
+            if self.logger is not None:
+                self.logger.error(f"Ошибка при создании главного меню: {str(e)}")
+            raise
 
     def _load_timezones(self):
+        """
+        Загрузка списка часовых поясов из zone.tab или zoneinfo.
+        """
+        if self.logger is not None:
+            self.logger.debug("Загрузка часовых поясов")
+
         self.ru_zones = []
         self.grouped_zones = {}
         zone_tab = "/usr/share/zoneinfo/zone.tab"
-        if os.path.exists(zone_tab):
-            with open(zone_tab, "rt", encoding="utf-8") as f:
-                for line in f:
-                    if line.startswith("#") or line.strip() == "":
-                        continue
-                    fields = line.split()
-                    if len(fields) < 3:
-                        continue
-                    country = fields[0]
-                    zone = fields[2]
-                    if country == "RU":
-                        self.ru_zones.append(zone)
-                    region = zone.split("/")[0]
-                    self.grouped_zones.setdefault(region, []).append(zone)
-        else:
-            zones = available_timezones()
-            for z in zones:
-                region = z.split("/")[0]
-                self.grouped_zones.setdefault(region, []).append(z)
-                if z.startswith("Europe/") or z.startswith("Asia/"):
-                    if "Moscow" in z or "Volgograd" in z or "Irkutsk" in z:
-                        pass
-        for k in self.grouped_zones:
-            self.grouped_zones[k] = sorted(self.grouped_zones[k])
-        self.ru_zones = sorted(self.ru_zones)
-        # Make Moscow the first option in the list to ensure it is the
-        # default and most visible choice for users.
-        if "Europe/Moscow" in self.ru_zones:
-            self.ru_zones.insert(0,
-                                self.ru_zones.pop(self.ru_zones.index("Europe/Moscow")))
+
+        try:
+            if os.path.exists(zone_tab):
+                with open(zone_tab, "rt", encoding="utf-8") as f:
+                    for line in f:
+                        if line.startswith("#") or line.strip() == "":
+                            continue
+                        fields = line.split()
+                        if len(fields) < 3:
+                            continue
+                        country = fields[0]
+                        zone = fields[2]
+                        if country == "RU":
+                            self.ru_zones.append(zone)
+                        region = zone.split("/")[0]
+                        self.grouped_zones.setdefault(region, []).append(zone)
+                if self.logger is not None:
+                    self.logger.debug(f"Загружено {len(self.ru_zones)} российских зон из zone.tab")
+            else:
+                zones = available_timezones()
+                for z in zones:
+                    region = z.split("/")[0]
+                    self.grouped_zones.setdefault(region, []).append(z)
+                if self.logger is not None:
+                    self.logger.debug(f"Загружено {len(zones)} зон из zoneinfo")
+
+            for k in self.grouped_zones:
+                self.grouped_zones[k] = sorted(self.grouped_zones[k])
+            self.ru_zones = sorted(self.ru_zones)
+            if "Europe/Moscow" in self.ru_zones:
+                self.ru_zones.insert(0, self.ru_zones.pop(self.ru_zones.index("Europe/Moscow")))
+                if self.logger is not None:
+                    self.logger.debug("Europe/Moscow перемещен в начало списка российских зон")
+        except Exception as e:
+            if self.logger is not None:
+                self.logger.error(f"Ошибка при загрузке часовых поясов: {str(e)}")
+            raise
 
     def _create_main_menu(self):
+        """
+        Создание главного меню с российскими часовыми поясами.
+        """
+        if self.logger is not None:
+            self.logger.debug("Создание главного меню")
+
         menu_items = []
+        max_item_length = 0
         for tz in self.ru_zones:
             menu_items.append((tz, self._set_timezone, tz))
-        menu_items.append(("Other regions...", self._other_timezones, None))
+            max_item_length = max(max_item_length, len(tz))
+        menu_items.append(("Другие регионы...", self._other_timezones, None))
+        max_item_length = max(max_item_length, len("Другие регионы..."))
+
+        # Ограничение ширины меню для предотвращения выхода за границы
+        menu_width = min(self.menu_width, max_item_length + 4)
         default_selected = 0
         if self.default_zone in self.ru_zones:
             default_selected = self.ru_zones.index(self.default_zone)
-        self.menu = Menu(self.menu_starty, self.win_width, menu_items,
-                         self.menu_height,
-                         default_selected=default_selected, tab_enable=False)
-        # Position the menu inside the timezone window so that the list does
-        # not extend outside the window borders.
-        self.menu.panel.move(
-            self.menu_starty,
-            self.win_startx + (self.win_width - self.menu.width) // 2)
-        self.window = Window(self.win_height, self.win_width, self.maxy, self.maxx,
-                             "Select Timezone", True, self.menu,
-                             can_go_next=True, position=1)
-        self.install_config["timezone"] = self.default_zone
+            if self.logger is not None:
+                self.logger.debug(f"Установлен default_selected={default_selected} для {self.default_zone}")
+
+        try:
+            self.menu = Menu(self.menu_starty, menu_width, menu_items, self.menu_height,
+                             default_selected=default_selected, tab_enable=False, logger=self.logger)
+            self.menu.panel.move(
+                self.menu_starty,
+                self.win_startx + (self.win_width - self.menu.width) // 2)
+            self.window = Window(self.win_height, self.win_width, self.maxy, self.maxx,
+                                "Выберите часовой пояс", True, self.menu,
+                                can_go_next=True, position=1, logger=self.logger)
+            self.install_config["timezone"] = self.default_zone
+            if self.logger is not None:
+                self.logger.debug(f"Создано главное меню: ширина={menu_width}, высота={self.menu_height}")
+        except Exception as e:
+            if self.logger is not None:
+                self.logger.error(f"Ошибка при создании главного меню: {str(e)}")
+            raise
 
     def _set_timezone(self, timezone):
+        """
+        Установка выбранного часового пояса.
+
+        Аргументы:
+        - timezone (str): Выбранный часовой пояс.
+
+        Возвращает:
+        - ActionResult: Результат действия.
+        """
+        if self.logger is not None:
+            self.logger.info(f"Установлен часовой пояс: {timezone}")
         self.install_config["timezone"] = timezone
         return ActionResult(True, None)
 
     def _select_group(self, group):
+        """
+        Выбор региона.
+
+        Аргументы:
+        - group (str): Выбранный регион.
+
+        Возвращает:
+        - ActionResult: Результат действия.
+        """
+        if self.logger is not None:
+            self.logger.debug(f"Выбран регион: {group}")
         self._selected_group = group
         return ActionResult(True, None)
 
     def _select_zone(self, zone):
+        """
+        Выбор часового пояса в регионе.
+
+        Аргументы:
+        - zone (str): Выбранный часовой пояс.
+
+        Возвращает:
+        - ActionResult: Результат действия.
+        """
+        if self.logger is not None:
+            self.logger.debug(f"Выбран часовой пояс: {zone}")
         self._selected_zone = zone
         return ActionResult(True, None)
 
     def _other_timezones(self, _):
-        groups = sorted(self.grouped_zones.keys())
-        group_items = [(g, self._select_group, g) for g in groups]
-        group_menu = Menu(self.menu_starty, self.win_width, group_items,
-                          self.menu_height,
-                          default_selected=0, tab_enable=False)
-        group_menu.panel.move(
-            self.menu_starty,
-            self.win_startx + (self.win_width - group_menu.width) // 2)
-        group_window = Window(self.win_height, self.win_width, self.maxy, self.maxx,
-                              "Select Region", True, group_menu,
-                              can_go_next=True, position=1)
-        ar = group_window.do_action()
-        if not ar.success:
-            return ActionResult(False, {"goBack": True})
-        zones = self.grouped_zones[self._selected_group]
-        zone_items = [(z, self._select_zone, z) for z in zones]
-        zone_menu = Menu(self.menu_starty, self.win_width, zone_items,
-                         self.menu_height,
-                         default_selected=0, tab_enable=False)
-        zone_menu.panel.move(
-            self.menu_starty,
-            self.win_startx + (self.win_width - zone_menu.width) // 2)
-        zone_window = Window(self.win_height, self.win_width, self.maxy, self.maxx,
-                             "Select Timezone", True, zone_menu,
-                             can_go_next=True, position=1)
-        ar = zone_window.do_action()
-        if not ar.success:
-            return ActionResult(False, {"goBack": True})
-        self.install_config["timezone"] = self._selected_zone
-        return ActionResult(True, None)
+        """
+        Отображение меню для выбора других регионов и часовых поясов.
+
+        Аргументы:
+        - _ (None): Заглушка для соответствия сигнатуре.
+
+        Возвращает:
+        - ActionResult: Результат действия.
+        """
+        if self.logger is not None:
+            self.logger.debug("Открытие меню других регионов")
+
+        try:
+            groups = sorted(self.grouped_zones.keys())
+            group_items = [(g, self._select_group, g) for g in groups]
+            max_group_length = max(len(g) for g in groups) if groups else 0
+            group_menu_width = min(self.menu_width, max_group_length + 4)
+
+            group_menu = Menu(self.menu_starty, group_menu_width, group_items, self.menu_height,
+                              default_selected=0, tab_enable=False, logger=self.logger)
+            group_menu.panel.move(
+                self.menu_starty,
+                self.win_startx + (self.win_width - group_menu.width) // 2)
+            group_window = Window(self.win_height, self.win_width, self.maxy, self.maxx,
+                                 "Выберите регион", True, group_menu,
+                                 can_go_next=True, position=1, logger=self.logger)
+            ar = group_window.do_action()
+            if self.logger is not None:
+                self.logger.debug(f"Результат выбора региона: {ar}")
+            if not ar.success:
+                if self.logger is not None:
+                    self.logger.info("Возврат назад из меню регионов")
+                return ActionResult(False, {"goBack": True})
+
+            zones = self.grouped_zones[self._selected_group]
+            zone_items = [(z, self._select_zone, z) for z in zones]
+            max_zone_length = max(len(z) for z in zones) if zones else 0
+            zone_menu_width = min(self.menu_width, max_zone_length + 4)
+
+            zone_menu = Menu(self.menu_starty, zone_menu_width, zone_items, self.menu_height,
+                             default_selected=0, tab_enable=False, logger=self.logger)
+            zone_menu.panel.move(
+                self.menu_starty,
+                self.win_startx + (self.win_width - zone_menu.width) // 2)
+            zone_window = Window(self.win_height, self.win_width, self.maxy, self.maxx,
+                                "Выберите часовой пояс", True, zone_menu,
+                                can_go_next=True, position=1, logger=self.logger)
+            ar = zone_window.do_action()
+            if self.logger is not None:
+                self.logger.debug(f"Результат выбора часового пояса: {ar}")
+            if not ar.success:
+                if self.logger is not None:
+                    self.logger.info("Возврат назад из меню часовых поясов")
+                return ActionResult(False, {"goBack": True})
+
+            self.install_config["timezone"] = self._selected_zone
+            if self.logger is not None:
+                self.logger.info(f"Установлен часовой пояс: {self._selected_zone}")
+            return ActionResult(True, None)
+        except Exception as e:
+            if self.logger is not None:
+                self.logger.error(f"Ошибка при выборе других регионов: {str(e)}")
+            return ActionResult(False, {"error": str(e)})
 
     def display(self):
-        return self.window.do_action()
+        """
+        Отображение окна выбора часового пояса.
+
+        Возвращает:
+        - ActionResult: Результат действия.
+        """
+        if self.logger is not None:
+            self.logger.debug("Запуск отображения окна выбора часового пояса")
+        try:
+            result = self.window.do_action()
+            if self.logger is not None:
+                self.logger.info(f"Результат отображения: {result}")
+            return result
+        except Exception as e:
+            if self.logger is not None:
+                self.logger.error(f"Ошибка при отображении окна: {str(e)}")
+            return ActionResult(False, {"error": str(e)})
