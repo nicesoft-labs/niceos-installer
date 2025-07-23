@@ -47,7 +47,7 @@ class TimezoneSelector(object):
         self.win_starty = max(0, (self.maxy - self.win_height) // 2)
         self.win_startx = max(0, (self.maxx - self.win_width) // 2)
         self.menu_starty = self.win_starty + 3
-        self.menu_height = self.win_height - 6  # Уменьшено для места под кнопки
+        self.menu_height = self.win_height - 6  # Оставляем место для кнопок
         self.menu_width = min(self.win_width - 4, maxx - self.win_startx - 8)  # Учет отступов и границ
 
         self._load_timezones()
