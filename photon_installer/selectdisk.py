@@ -7,6 +7,7 @@
 
 import sys
 import logging
+import curses
 from device import Device
 from window import Window
 from actionresult import ActionResult
@@ -107,6 +108,12 @@ class SelectDisk(object):
                                      'Нажмите любую клавишу для перехода в bash.')
                 err_win.show_window()
                 err_win.content_window().getch()
+                while True:
+                    ch = err_win.content_window().getch()
+                    if ch == curses.KEY_F1:
+                        err_win.show_help()
+                    else:
+                        break
                 if self.logger is not None:
                     self.logger.error("Не найдено блочных устройств, завершение программы")
                 sys.exit(1)
