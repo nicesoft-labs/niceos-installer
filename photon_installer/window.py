@@ -125,9 +125,9 @@ class Window(Action):
                 self.logger.error(f"Ошибка при инициализации окна: {str(e)}")
             raise
 
-        # Hide window after initialization to match previous behavior
-        # self.hide_window()
-    
+        # Скрытие окна после инициализации
+        self.hide_window()
+
     def update_next_item(self):
         """
         Добавление элемента '<Далее>' в меню.
@@ -394,7 +394,7 @@ class Window(Action):
         if self.logger is not None:
             self.logger.debug(f"Обновление меню: n={n}, select={select}")
 
-        try:                
+        try:
             self.position += n
             if self.can_go_back:
                 if self.position < 0:
@@ -409,6 +409,9 @@ class Window(Action):
 
             if not self.items and not self.can_go_next:
                 self.position = 0
+
+            # Очистка строки меню
+            self.contentwin.addstr(self.height - 3, 0, " " * (self.width - 1))
 
             newy = 5
             if self.can_go_back:
@@ -435,7 +438,6 @@ class Window(Action):
                             self.contentwin.addstr(self.height - 3, newy, item[0], curses.color_pair(1) if self.items else 0)
                         newy += len(item[0]) + self.dist
                         index += 1
-                        newy += len(item[0]) + self.dist
             else:
                 index = 0
                 for item in self.items:
@@ -463,6 +465,12 @@ class Window(Action):
 
         try:
             y, x = self.y, self.x
+            # Очистка экрана перед отображением
+            self.contentwin.erase()
+            self.textwin.erase()
+            self.shadowwin.erase()
+            self.contentwin.box()
+            self.contentwin.addstr(0, (self.width - 1 - len(' ' + self.title + ' ')) // 2, ' ' + self.title + ' ')
             self.shadowpanel.top()
             self.contentpanel.top()
             self.textpanel.top()
@@ -494,6 +502,7 @@ class Window(Action):
             self.shadowpanel.hide()
             self.contentpanel.hide()
             self.textpanel.hide()
+            # Полная очистка экрана после скрытия
             curses.panel.update_panels()
             curses.doupdate()
             if self.logger is not None:
