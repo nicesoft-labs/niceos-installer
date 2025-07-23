@@ -19,6 +19,7 @@ class ReadMulText(Action):
                  display_string, confirmation_error_msg,
                  echo_char, accepted_chars, validation_fn, conversion_fn,
                  can_cancel, default_string=None):
+        self.help_callback = None
         self.maxy = maxy
         self.maxx = maxx
         self.y = y
@@ -71,6 +72,9 @@ class ReadMulText(Action):
         curses.panel.update_panels()
         curses.doupdate()
 
+    def set_help_callback(self, cb):
+        self.help_callback = cb
+    
     def show(self):
         """Show the dialog and its shadow."""
         self.shadowpanel.top()
@@ -116,6 +120,11 @@ class ReadMulText(Action):
             else:
                 curs_loc = len(self.str[self.position]) +1
             ch = self.textwin.getch(self.y + 2 + self.position * 4, curs_loc)
+            if ch == curses.KEY_F1 and self.help_callback:
+                curses.curs_set(0)
+                self.help_callback()
+                curses.curs_set(1)
+                continue
 
             update_text = False
             if ch in [curses.KEY_ENTER, ord('\n')]:
