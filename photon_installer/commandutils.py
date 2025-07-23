@@ -89,11 +89,15 @@ class CommandUtils(object):
 
 
     @staticmethod
-    def generate_password_hash(password, logger):
+    def generate_password_hash(password, logger=None):
         """Генерация хэша для пароля."""
-        logger.debug("Генерация хэша пароля")
+        if logger:
+            logger.debug("Генерация хэша пароля")
         hash_value = sha512_crypt.hash(password)
-        logger.debug(f"Хэш пароля успешно сгенерирован: {hash_value[:20]}... (обрезан для лога)")
+        if logger:
+            logger.debug(
+                f"Хэш пароля успешно сгенерирован: {hash_value[:20]}... (обрезан для лога)"
+            )
         return hash_value
 
     @staticmethod
