@@ -65,7 +65,20 @@ class ReadMulText(Action):
             self.accepted_chars = range(32, 127)
 
     def hide(self):
-        return
+        """Hide both the dialog and its shadow."""
+        self.panel.hide()
+        self.shadowpanel.hide()
+        curses.panel.update_panels()
+        curses.doupdate()
+
+    def show(self):
+        """Show the dialog and its shadow."""
+        self.shadowpanel.top()
+        self.panel.top()
+        self.shadowpanel.show()
+        self.panel.show()
+        curses.panel.update_panels()
+        curses.doupdate()
 
     def init_text(self):
         self.shadowpanel.show()
@@ -90,6 +103,7 @@ class ReadMulText(Action):
 
     def do_action(self):
         self.init_text()
+        self.show()
         curses.curs_set(1)
 
         if self.default_string != None:
@@ -107,7 +121,7 @@ class ReadMulText(Action):
             if ch in [curses.KEY_ENTER, ord('\n')]:
                 if self.menu_pos == 1:
                     curses.curs_set(0)
-                    self.shadowpanel.hide()
+                    self.hide()
                     return ActionResult(False, None)
                 if self.confirmation_error_msg:
                     if self.str != self.config[self.field]:
@@ -119,6 +133,7 @@ class ReadMulText(Action):
                                                        self.maxy, self.maxx, conf_message_button_y,
                                                        self.confirmation_error_msg, True)
                         confrim_window.do_action()
+                        self.hide()
                         return ActionResult(False, {'goBack': True})
                     self.set_field()
                 else:
@@ -127,6 +142,7 @@ class ReadMulText(Action):
                     self.set_field()
                 curses.curs_set(0)
                 self.shadowpanel.hide()
+                self.hide()
                 return ActionResult(True, None)
             elif ch == curses.KEY_UP:
                 self.refresh(-1)
