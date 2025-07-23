@@ -12,6 +12,7 @@ from action import Action
 
 class TextPane(Action):
     def __init__(self, starty, maxx, width, text_file_path, height, menu_items):
+        self.help_callback = None
         self.head_position = 0  #This is the start of showing
         self.menu_position = 0
         self.lines = []
@@ -165,11 +166,17 @@ class TextPane(Action):
         curses.panel.update_panels()
         curses.doupdate()
 
+    def set_help_callback(self, cb):
+        self.help_callback = cb
+    
     def do_action(self):
         while True:
             self.refresh()
 
             key = self.window.getch()
+            if key == curses.KEY_F1 and self.help_callback:
+                self.help_callback()
+                continue
 
             if key in [curses.KEY_ENTER, ord('\n')]:
                 self.hide()
