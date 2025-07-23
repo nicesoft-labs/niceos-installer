@@ -701,7 +701,12 @@ class Installer(object):
                                'Press any key to continue to boot...'
                                .format(self.progress_bar.time_elapsed))
             if self.interactive:
-                self.window.content_window().getch()
+                while True:
+                    ch = self.window.content_window().getch()
+                    if ch == curses.KEY_F1:
+                        self.window.show_help()
+                    else:
+                        break
         else:
             self.logger.info("creating image was successful")
 
@@ -755,7 +760,12 @@ class Installer(object):
                 self.progress_bar.hide()
                 self.window.addstr(0, 0, 'Oops, Installer got interrupted.\n\n' +
                                    'Press any key to get to the bash...')
-                self.window.content_window().getch()
+                while True:
+                    ch = self.window.content_window().getch()
+                    if ch == curses.KEY_F1:
+                        self.window.show_help()
+                    else:
+                        break
 
             self._cleanup_install_repo()
             self._unmount_all()
