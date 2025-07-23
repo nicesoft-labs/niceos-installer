@@ -30,12 +30,15 @@ class Window(Action):
         can_go_next=False,
         read_text=False,
         logger=None,
+        help_text="Справка пока недоступна",
     ):
         """Инициализация окна с заданными параметрами."""
         self.can_go_back = can_go_back
         self.can_go_next = can_go_next
         self.height = height
         self.width = width
+        self.maxy = maxy
+        self.maxx = maxx
         self.y = (maxy - height) // 2
         self.x = (maxx - width) // 2
         self.title = f" {title} "
@@ -45,6 +48,7 @@ class Window(Action):
         self.action_panel = action_panel
         self.items = items if items else []
         self.menu_helper = menu_helper
+        self.help_text = help_text
 
         # Создание окна содержимого
         self.contentwin = curses.newwin(height - 1, width - 1)
@@ -103,6 +107,8 @@ class Window(Action):
     def set_action_panel(self, action_panel):
         """Установка панели действий."""
         self.action_panel = action_panel
+        if hasattr(self.action_panel, "set_help_callback"):
+            self.action_panel.set_help_callback(self.show_help)
 
     def update_menu(self, action_result):
         """Обновление меню на основе результата действия."""
@@ -173,6 +179,9 @@ class Window(Action):
                     self.refresh(action_result.result["direction"], True)
             else:
                 key = self.contentwin.getch()
+                if key == curses.KEY_F1:
+                    self.show_help()
+                    continue
                 if key in (curses.KEY_ENTER, ord("\n")):
                     if self.position == 0:
                         self.contentwin.addstr(self.height - 3, 5, "<Назад>")
@@ -302,3 +311,28 @@ class Window(Action):
     def content_window(self):
         """Возвращает окно содержимого."""
         return self.textwin
+
+
+    def show_help(self):
+        """Отобразить окно справки."""
+        lines = self.help_text.splitlines()
+        height = max(7, len(lines) + 4)
+        width = max(40, max((len(line) for line in lines), default=0) + 4)
+        starty = (self.maxy - height) // 2
+        startx = (self.maxx - width) // 2
+        helpwin = curses.newwin(height, width, starty, startx)
+        helpwin.bkgd(' ', curses.color_pair(2))
+        helpwin.box()
+        title = ' Справка '
+        helpwin.addstr(0, (width - len(title)) // 2, title)
+        for idx, line in enumerate(lines):
+            if idx + 2 < height - 2:
+                helpwin.addstr(2 + idx, 2, line[: width - 4])
+        helpwin.addstr(height - 2, (width - len('<OK>')) // 2, '<OK>', curses.color_pair(3))
+        helpwin.refresh()
+        helpwin.getch()
+        helpwin.clear()
+        helpwin.refresh()
+        del helpwin
+        curses.panel.update_panels()
+        curses.doupdate()
