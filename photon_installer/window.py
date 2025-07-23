@@ -15,7 +15,7 @@ from action import Action
 
 class Window(Action):
     def __init__(self, height, width, maxy, maxx, title, can_go_back, action_panel=None, items=None,
-                 menu_helper=None, position=0, tab_enabled=True, can_go_next=False, read_text=False, logger):
+                 menu_helper=None, position=0, tab_enabled=True, can_go_next=False, read_text=False, logger=None):
         """
         Инициализация окна пользовательского интерфейса.
 
