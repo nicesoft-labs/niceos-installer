@@ -62,7 +62,7 @@ class IsoConfig(object):
         self.hostname_accepted_chars.extend(range(48, 58))
         self.hostname_accepted_chars.extend([ord('.'), ord('-')])
         self.random_id = '%12x' % secrets.randbelow(16**12)
-        self.random_hostname = "photon-" + self.random_id.strip()
+        self.random_hostname = "niceos-" + self.random_id.strip()
         self.root_dir = root_dir
         if self.logger is not None:
             self.logger.debug(f"Установлены параметры: random_hostname={self.random_hostname}")
@@ -283,7 +283,7 @@ class IsoConfig(object):
             curses.init_pair(4, curses.COLOR_RED, curses.COLOR_WHITE)
             stdscreen.bkgd(' ', curses.color_pair(1))
             maxy, maxx = stdscreen.getmaxyx()
-            stdscreen.addstr(maxy - 1, 0, ' © 2025 ООО "НАЙС СОФТ ГРУПП" | НАЙС.ОС | Стрелки для выбора; <Enter> для подтверждения.')
+            stdscreen.addstr(maxy - 1, 0, ' © 2025 ООО "НАЙС СОФТ ГРУПП" | НАЙС.ОС | https://niceos.ru | Стрелки для выбора; <Enter> для подтверждения.')
             curses.curs_set(0)
             if self.logger is not None:
                 self.logger.debug(f"Инициализирован curses: maxy={maxy}, maxx={maxx}")
@@ -391,12 +391,12 @@ class IsoConfig(object):
             ostree_ref_reader = OSTreeWindowStringReader(
                 maxy, maxx, 10, 70, 'repo_ref', None, None, None, IsoConfig.validate_ostree_refs_input,
                 None, 'Укажите Refspec в репозитории OSTree', 'Refspec репозитория OSTree:', 2, install_config,
-                "photon/3.0/x86_64/minimal"
+                "niceos/5.2/x86_64/minimal"
             )
             confirm_window = ConfirmWindow(
                 11, 60, maxy, maxx, (maxy - 11) // 2 + 7,
                 'Начать установку? Все данные на выбранном диске будут потеряны.\n\n'
-                'Нажмите <Yes> для подтверждения или <No> для выхода', logger=self.logger
+                'Нажмите <Да> для подтверждения или <Нет> для выхода', logger=self.logger
             )
 
             items.append((license_agreement.display, False))
