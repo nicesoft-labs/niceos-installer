@@ -396,36 +396,50 @@ class Window(Action):
 
         try:
             if not self.can_go_back:
-                if self.logger is not None:
-                    self.logger.debug("Обновление отменено: can_go_back=False")
-                return
-
+                
             self.position += n
-            if self.position < 0:
-                self.position = 0
-            elif self.items and self.position > len(self.items):
-                self.position = len(self.items)
+            if self.can_go_back:
+                if self.position < 0:
+                    self.position = 0
+                elif self.items and self.position > len(self.items):
+                    self.position = len(self.items)
+            else:
+                if self.position < 0:
+                    self.position = 0
+                elif self.items and self.position >= len(self.items):
+                    self.position = len(self.items) - 1 if self.items else 0
 
             if not self.items and not self.can_go_next:
                 self.position = 0
 
             newy = 5
-            if self.position == 0:
-                if select:
-                    self.contentwin.addstr(self.height - 3, 5, '<Назад>', curses.color_pair(3))
-                elif self.items:
-                    self.contentwin.addstr(self.height - 3, 5, '<Назад>', curses.color_pair(1))
+            if self.can_go_back:
+                if self.position == 0:
+                    if select:
+                        self.contentwin.addstr(self.height - 3, 5, '<Назад>', curses.color_pair(3))
+                    elif self.items:
+                        self.contentwin.addstr(self.height - 3, 5, '<Назад>', curses.color_pair(1))
+                    else:
+                        self.contentwin.addstr(self.height - 3, 5, '<Назад>')
+                    newy += len('<Назад>') + self.dist
+                    if self.items:
+                        for item in self.items:
+                            self.contentwin.addstr(self.height - 3, newy, item[0])
+                            newy += len(item[0]) + self.dist
                 else:
                     self.contentwin.addstr(self.height - 3, 5, '<Назад>')
-                newy += len('<Назад>') + self.dist
-                if self.items:
+                    newy += len('<Назад>') + self.dist
+                    index = 1
                     for item in self.items:
-                        self.contentwin.addstr(self.height - 3, newy, item[0])
+                        if index == self.position and select:
+                            self.contentwin.addstr(self.height - 3, newy, item[0], curses.color_pair(3))
+                        else:
+                            self.contentwin.addstr(self.height - 3, newy, item[0], curses.color_pair(1) if self.items else 0)
+                        newy += len(item[0]) + self.dist
+                        index += 1
                         newy += len(item[0]) + self.dist
             else:
-                self.contentwin.addstr(self.height - 3, 5, '<Назад>')
-                newy += len('<Назад>') + self.dist
-                index = 1
+                index = 0
                 for item in self.items:
                     if index == self.position and select:
                         self.contentwin.addstr(self.height - 3, newy, item[0], curses.color_pair(3))
