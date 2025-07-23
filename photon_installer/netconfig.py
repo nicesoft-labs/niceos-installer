@@ -40,7 +40,8 @@ class NetworkConfigure(object):
         'VLAN ID (1-4094): '
     )
 
-    def __init__(self, maxy, maxx, install_config):
+    def __init__(self, maxy, maxx, install_config, logger=None):
+        self.logger = logger
         self.maxx = maxx
         self.maxy = maxy
         self.win_width = 80
