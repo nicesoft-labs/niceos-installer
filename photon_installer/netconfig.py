@@ -6,6 +6,7 @@
 """
 
 import secrets
+import os
 from typing import Optional, Tuple, List, Dict
 from networkmanager import NetworkManager
 from menu import Menu
@@ -142,25 +143,14 @@ class NetworkConfigure:
 
     def _check_network_interfaces(self) -> bool:
         """
-        Проверка наличия доступных сетевых интерфейсов.
+        Проверка наличия сетевых интерфейсов (заглушка, так как get_interfaces отсутствует).
 
         Returns:
-            bool: True, если интерфейсы есть или используется fallback, иначе False.
+            bool: True, используя интерфейс по умолчанию.
         """
-        try:
-            interfaces = self.network_manager.get_interfaces()
-            if not interfaces:
-                if self.logger:
-                    self.logger.warning(f"Нет доступных сетевых интерфейсов, используется интерфейс по умолчанию: {self.DEFAULT_INTERFACE}")
-                return True  # Allow fallback to DEFAULT_INTERFACE
-            if self.logger:
-                self.logger.info(f"Найдены сетевые интерфейсы: {interfaces}")
-            return True
-        except Exception as e:
-            if self.logger:
-                self.logger.error(f"Ошибка при проверке сетевых интерфейсов: {e}")
-            self.window.adderror(f"Ошибка: Не удалось проверить сетевые интерфейсы: {e}")
-            return True  # Allow fallback to avoid blocking installation
+        if self.logger:
+            self.logger.warning(f"Проверка сетевых интерфейсов не реализована, используется интерфейс по умолчанию: {self.DEFAULT_INTERFACE}")
+        return True
 
     @staticmethod
     def validate_hostname(hostname: Optional[str]) -> Tuple[bool, Optional[str]]:
@@ -276,19 +266,11 @@ class NetworkConfigure:
         Получение имени сетевого интерфейса по умолчанию.
 
         Returns:
-            str: Имя интерфейса или DEFAULT_INTERFACE.
+            str: Имя интерфейса (DEFAULT_INTERFACE).
         """
-        try:
-            interfaces = self.network_manager.get_interfaces()
-            interface = interfaces[0] if interfaces else self.DEFAULT_INTERFACE
-            if self.logger:
-                self.logger.info(f"Выбран сетевой интерфейс: {interface}")
-            return interface
-        except Exception as e:
-            if self.logger:
-                self.logger.error(f"Ошибка при получении сетевого интерфейса: {e}")
-            self.window.adderror(f"Ошибка: Не удалось получить сетевой интерфейс, используется {self.DEFAULT_INTERFACE}")
-            return self.DEFAULT_INTERFACE
+        if self.logger:
+            self.logger.info(f"Используется интерфейс по умолчанию: {self.DEFAULT_INTERFACE}")
+        return self.DEFAULT_INTERFACE
 
     def _exit_function(self, selected_item_params: List[str]) -> ActionResult:
         """
@@ -446,8 +428,6 @@ class NetworkConfigure:
             ActionResult: Результат действия (успех или ошибка).
         """
         try:
-            if not self._check_network_interfaces():
-                return ActionResult(False, {'custom': False})
             result = self.window.do_action()
             if not result.success:
                 if self.logger:
