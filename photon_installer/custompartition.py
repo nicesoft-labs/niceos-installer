@@ -1,11 +1,7 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-"""
-© 2025 ООО "НАЙС СОФТ ГРУПП" (ИНН 5024245440)
-Контакты: <niceos@ncsgp.ru>
-"""
-
+#/*
+# * Copyright © 2020 VMware, Inc.
+# * SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-only
+# */
 from typing import Optional, Tuple, List, Dict
 from window import Window
 from windowstringreader import WindowStringReader
@@ -59,9 +55,15 @@ class CustomPartition:
         """Инициализация устройств и расчет размеров дисков."""
         self.devices = Device.refresh_devices(bytes=True)
         for index, device in enumerate(self.devices):
-            size_mb = int(device.size / 1048576) - (BIOSSIZE + ESPSIZE + 2)
-            self.disk_size.append((device.path, size_mb))
-            self.disk_to_index[device.path] = index
+            try:
+                size_bytes = int(device.size)  # Convert string to integer
+                size_mb = size_bytes // 1048576 - (BIOSSIZE + ESPSIZE + 2)
+                self.disk_size.append((device.path, size_mb))
+                self.disk_to_index[device.path] = index
+            except ValueError as e:
+                if self.logger:
+                    self.logger.error(f"Недействительный размер устройства {device.path}: {device.size}")
+                raise ValueError(f"Не удалось преобразовать размер устройства {device.path} в число: {device.size}")
 
     def display(self) -> ActionResult:
         """Отображение интерфейса настройки разделов."""
@@ -90,7 +92,7 @@ class CustomPartition:
 
         info = (
             f"Неразмеченное пространство: {self.disk_size[self.device_index][1]} МБ, "
-            f"Общий размер: {int(self.devices[self.device_index].size / 1048576)} МБ"
+            f"Общий размер: {int(self.devices[self.device_index].size) // 1048576} МБ"
         )
 
         self.partition_pane = PartitionPane(
@@ -251,7 +253,7 @@ class CustomPartition:
             partitions.append(part)
         self.install_config['partitions'] = partitions
 
-        return ActionResult(True, {'go allvar': True})
+        return ActionResult(True, {'goNext': True})
 
     def _delete(self) -> None:
         """Сброс конфигурации разделов."""
@@ -262,7 +264,14 @@ class CustomPartition:
                 del self.cp_config[f'{i}fs_options']
         self.disk_size.clear()
         for index, device in enumerate(self.devices):
-            self.disk_size.append((device.path, int(device.size / 1048576) - (BIOSSIZE + ESPSIZE + 2)))
+            try:
+                size_bytes = int(device.size)
+                size_mb = size_bytes // 1048576 - (BIOSSIZE + ESPSIZE + 2)
+                self.disk_size.append((device.path, size_mb))
+            except ValueError as e:
+                if self.logger:
+                    self.logger.error(f"Недействительный размер устройства {device.path}: {device.size}")
+                raise ValueError(f"Не удалось преобразовать размер устройства {device.path} в число: {device.size}")
         self.path_checker.clear()
         self.has_slash = False
         self.has_remain = False
